@@ -18,24 +18,27 @@ public class Main {
 	 */
 	public static void main(String[] args) {	
 		Scanner stdin = new Scanner(new BufferedInputStream(System.in));
-		String cliString = "WAE> ";
-		String quitString = "exit";
+		String cliString = "SQL>";
+		String quitString = "exit;";
+		String termString = ";";
 		while (true) {
 			ArrayList<String> input = new ArrayList<String>();
 			String line = "";
-			System.out.print(cliString);
-			while(stdin.hasNextLine()) {
+			do  {
+				System.out.print(cliString);
 				System.out.flush();
-				line = stdin.nextLine();
-				if (line.equals("") || line.equals(quitString)) break;
-				input.add(line);
-			}
+				if (stdin.hasNextLine()) {
+					line = stdin.nextLine().trim();
+					if (line.equals("") || line.equals(quitString)) break;
+					input.add(line);
+					if (line.endsWith(termString)) break;
+				}
+			} while (stdin.hasNextLine());
 			
 			if (line.equals(quitString)) break;
 			if (input.size() > 0) {
 				String result = String.join("\n", input);
-				//The assignment test cases do not seem to require a semicolon
-				if (!result.endsWith(";")) result = result + ";";
+				System.out.println("evaluating: " + result);
 				evaluate(result);
 			}
 			input = new ArrayList<String>();
