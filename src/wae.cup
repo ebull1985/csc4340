@@ -1,0 +1,111 @@
+/** Import the class java_cup.runtime.*  */
+import java_cup.runtime.*;
+import java.util.Hashtable;
+
+action code {:
+    Hashtable<String, Integer> ids = new Hashtable<String, Integer>();
+:};
+   
+/* Parser code to change the way the parser reports errors (include
+   line and column number of the error). */
+parser code {:
+    //Replacing error reporting to meet assignment reqs.
+    
+    public void report_error(String message, Object info) {
+        throw new Error("Syntax Error");
+    }
+    
+    public void report_fatal_error(String message, Object info) {
+        throw new Error("Syntax Error");
+    }
+:};
+   
+
+   
+/* ------------Declaration of Terminals and Non Terminals Section----------- */
+   
+/* Terminals (tokens returned by the scanner).  
+
+   Terminals that have no value are listed first and then terminals
+   that do have an value, in this case an integer value, are listed on
+   the next line down. */
+terminal           SEMI, PLUS, MINUS, LBRACKET, RBRACKET, WITH;
+terminal String    ID;
+terminal Integer   NUMBER;
+   
+/* Non terminals used in the grammar section.  
+
+   Non terminals that have an object value are listed first and then
+   non terminals that have an integer value are listed.  An object
+   value means that it can be any type, it isn't set to a specific
+   type.  So it could be an Integer or a String or whatever. */
+non terminal Object     set_id;
+non terminal Integer    waeStart, wae;
+   
+
+/* -------------Precedence and Associatively of Terminals Section----------- */
+   
+/*
+  Precedence of non terminals could be defined here.  If you do define
+  precedence here you won't need to worry about precedence in the
+  Grammar Section, i.e. that TIMES should have a higher precedence
+  than PLUS.
+  
+  The precedence defined here would look something like this where the
+  lower line always will have higher precedence than the line before it.
+   
+  precedence left PLUS, MINUS; 
+  precedence left TIMES, DIVIDE; 
+*/
+
+
+/* ----------------------------Grammar Section-------------------- */
+/*
+    wae      ::= NUMBER
+                | LBRACKET PLUS wae wae RBRACKET
+                | LBRACKET MINUS wae wae RBRACKET
+                | set_id RBRACKET wae RBRACKET
+                | ID
+                
+    set_id ::= LBRACKET WITH LBRACKET ID:i wae:x
+    
+*/
+   
+   waeStart ::= wae:x SEMI
+                {: RESULT = new Integer(x.intValue());
+                   System.out.println("The value is " + RESULT); :}
+            ;
+   
+   wae      ::= NUMBER:x
+                {: RESULT = new Integer(x.intValue()); :}
+                |
+                LBRACKET PLUS wae:x wae:y RBRACKET
+                {: try {
+                    RESULT = new Integer(x.intValue() + y.intValue());
+                } catch (NullPointerException e) {
+                    throw new Error("Semantic Error");
+                }                    :}
+                |
+                LBRACKET MINUS wae:x wae:y RBRACKET
+                {: try {
+                    RESULT = new Integer(x.intValue() - y.intValue());
+                } catch (NullPointerException e) {
+                    throw new Error("Semantic Error");
+                }                    :}
+                |
+                set_id wae:y RBRACKET
+                {: 
+                   RESULT = new Integer(y.intValue()); :}
+                |
+                ID:i
+                {: if (ids.containsKey(i)) {
+                       RESULT = new Integer(ids.get(i)); 
+                    } else {
+                        RESULT = null;
+                    } :}
+                ;
+                
+    set_id  ::= LBRACKET WITH LBRACKET ID:i wae:x RBRACKET
+                {: ids.put(i,x.intValue()); :}
+    
+            ;
