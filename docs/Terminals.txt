@@ -1,3 +1,14 @@
 terminal SEMI, SELECT, DISTINCT, NAME, FROM, WHERE, AND, NOT, COMPARISON,IN,EXISTS, COMMA, DOT, LPAREN, RPAREN
+
+    done
+    
 terminal String STRING
+
+    done
+    
 terminal Integer INTNUM
+
+    done
+    
+    
+double check the flex file

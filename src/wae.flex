@@ -68,10 +68,9 @@ WhiteSpace     = {LineTerminator} | [ \t\f]
    or just a zero.  */
 dec_int_lit = 0 | [1-9][0-9]*
    
-/* A identifier integer is a word beginning a letter between A and
-   Z, a and z, or an underscore followed by zero or more letters
-   between A and Z, a and z, zero and nine, or an underscore. */
-dec_int_id = [A-Za-z_][A-Za-z_0-9]*
+/* Defining string literal. Can be any characters between two single quotes.
+   Currently no method for escaping single quotes, that's a TODO item. */
+string_lit = \'[^\']*\'
    
 %%
 /* ------------------------Lexical Rules Section---------------------- */
@@ -88,26 +87,40 @@ dec_int_id = [A-Za-z_][A-Za-z_0-9]*
 <YYINITIAL> {
    
     /* Return the token SEMI declared in the class sym that was found. */
-    ";"                { return symbol(sym.SEMI); }
+    ";" { return symbol(sym.SEMI); }
    
     /* Print the token found that was declared in the class sym and then
        return it. */
-    "+"                { return symbol(sym.PLUS); }
-    "-"                { return symbol(sym.MINUS); }
-    "{"                { return symbol(sym.LBRACKET); }
-    "}"                { return symbol(sym.RBRACKET); }
-    "with"             { return symbol(sym.WITH); }
+    "[sS][eE][lL][eE][cC][tT]" { return symbol(sym.SELECT); }
+    "[dD][iI][sS][tT][iI][nN][cC][tT]" { return symbol(sym.DISTINCT); }
+    "[nN][aA][mM][eE]" { return symbol(sym.NAME); }
+    "[fF][rR][oO][mM]" { return symbol(sym.FROM); }
+    "[wW][hH][eE][rR][eE]" { return symbol(sym.WHERE); }
+    "[aA][nN][dD]" { return symbol(sym.AND); }
+    "[nN][oO][tT]" { return symbol(sym.NOT); }
+    "[cC][oO][mM][pP][aA][rR][iI][sS][oO][nN]" { return symbol(sym.COMPARISON); }
+    "[iI][nN]" { return symbol(sym.IN); }
+    "[eE][xX][iI][sS][tT][sS]" { return symbol(sym.EXISTS); }
+    "," { return symbol(sym.COMMA); }
+    "." { return symbol(sym.DOT); }
+    "(" { return symbol(sym.LPAREN); }
+    ")" { return symbol(sym.RPAREN); }
    
     /* If an integer is found print it out, return the token NUMBER
        that represents an integer and the value of the integer that is
        held in the string yytext which will get turned into an integer
        before returning */
-    {dec_int_lit}      { return symbol(sym.NUMBER, new Integer(yytext())); }
+    {dec_int_lit}      { return symbol(sym.INTNUM, new Integer(yytext())); }
    
-    /* If an identifier is found print it out, return the token ID
-       that represents an identifier and the default value one that is
-       given to all identifiers. */
-    {dec_int_id}       { return symbol(sym.ID, new String(yytext()));}
+    /* Since the regex starts with a single quote and ends with a single   quote, they need to be stripped out before the text is returned. */
+    {string_lit}       { String text = new String(yytext());
+                         if (text.length() > 2) {
+                            text = new String(text.substring(1, text.length() - 1));
+                         } else {
+                            //This could happen with the data ''
+                            text = new String("");
+                         }
+                         return symbol(sym.STRING, new String(text())) ;}
    
     /* Don't do anything if whitespace is found */
     {WhiteSpace}       { /* just skip what was found, do nothing */ }   
