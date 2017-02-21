@@ -71,6 +71,10 @@ dec_int_lit = 0 | [1-9][0-9]*
 /* Defining string literal. Can be any characters between two single quotes.
    Currently no method for escaping single quotes, that's a TODO item. */
 string_lit = \'[^\']*\'
+
+/* Defining a name. Letters, numbers, special characters - and _. Probably should add more special characters, TODO need to look up SQL specifications. */
+
+name = [a-zA-Z0-9\-_]*
    
 %%
 /* ------------------------Lexical Rules Section---------------------- */
@@ -87,24 +91,24 @@ string_lit = \'[^\']*\'
 <YYINITIAL> {
    
     /* Return the token SEMI declared in the class sym that was found. */
-    ";" { return symbol(sym.SEMI); }
+    ";" { System.out.print(" " + yytext() + " "); return symbol(sym.SEMI); }
    
     /* Print the token found that was declared in the class sym and then
        return it. */
-    "[sS][eE][lL][eE][cC][tT]" { return symbol(sym.SELECT); }
-    "[dD][iI][sS][tT][iI][nN][cC][tT]" { return symbol(sym.DISTINCT); }
-    "[nN][aA][mM][eE]" { return symbol(sym.NAME); }
-    "[fF][rR][oO][mM]" { return symbol(sym.FROM); }
-    "[wW][hH][eE][rR][eE]" { return symbol(sym.WHERE); }
-    "[aA][nN][dD]" { return symbol(sym.AND); }
-    "[nN][oO][tT]" { return symbol(sym.NOT); }
-    "[cC][oO][mM][pP][aA][rR][iI][sS][oO][nN]" { return symbol(sym.COMPARISON); }
-    "[iI][nN]" { return symbol(sym.IN); }
-    "[eE][xX][iI][sS][tT][sS]" { return symbol(sym.EXISTS); }
-    "," { return symbol(sym.COMMA); }
-    "." { return symbol(sym.DOT); }
-    "(" { return symbol(sym.LPAREN); }
-    ")" { return symbol(sym.RPAREN); }
+    "[sS][eE][lL][eE][cC][tT]" { System.out.print(" " + yytext() + " "); return symbol(sym.SELECT); }
+    "[dD][iI][sS][tT][iI][nN][cC][tT]" { System.out.print(" " + yytext() + " "); return symbol(sym.DISTINCT); }
+    "[nN][aA][mM][eE]" { System.out.print(" " + yytext() + " "); return symbol(sym.NAME); }
+    "[fF][rR][oO][mM]" { System.out.print(" " + yytext() + " "); return symbol(sym.FROM); }
+    "[wW][hH][eE][rR][eE]" { System.out.print(" " + yytext() + " "); return symbol(sym.WHERE); }
+    "[aA][nN][dD]" { System.out.print(" " + yytext() + " "); return symbol(sym.AND); }
+    "[nN][oO][tT]" { System.out.print(" " + yytext() + " "); return symbol(sym.NOT); }
+    "[cC][oO][mM][pP][aA][rR][iI][sS][oO][nN]" { System.out.print(" " + yytext() + " "); return symbol(sym.COMPARISON); }
+    "[iI][nN]" { System.out.print(" " + yytext() + " "); return symbol(sym.IN); }
+    "[eE][xX][iI][sS][tT][sS]" { System.out.print(" " + yytext() + " "); return symbol(sym.EXISTS); }
+    "," { System.out.print(" " + yytext() + " "); return symbol(sym.COMMA); }
+    "." { System.out.print(" " + yytext() + " "); return symbol(sym.DOT); }
+    "(" { System.out.print(" " + yytext() + " "); return symbol(sym.LPAREN); }
+    ")" { System.out.print(" " + yytext() + " "); return symbol(sym.RPAREN); }
    
     /* If an integer is found print it out, return the token NUMBER
        that represents an integer and the value of the integer that is
@@ -120,7 +124,11 @@ string_lit = \'[^\']*\'
                             //This could happen with the data ''
                             text = new String("");
                          }
-                         return symbol(sym.STRING, new String(text())) ;}
+                         System.out.print(" " + text + " ");
+                         return symbol(sym.STRING, new String(text)) ;}
+    
+    /* Name */
+    {name}              { System.out.print(" " + yytext() + " "); return symbol(sym.NAME, new String(yytext()));}
    
     /* Don't do anything if whitespace is found */
     {WhiteSpace}       { /* just skip what was found, do nothing */ }   

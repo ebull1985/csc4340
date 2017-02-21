@@ -38,7 +38,6 @@ public class Main {
 			if (line.equals(quitString)) break;
 			if (input.size() > 0) {
 				String result = String.join("\n", input);
-				System.out.println("evaluating: " + result);
 				evaluate(result);
 			}
 			input = new ArrayList<String>();

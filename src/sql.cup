@@ -1,0 +1,204 @@
+/** Import the class java_cup.runtime.*  */
+import java_cup.runtime.*;
+import java.util.Hashtable;
+
+action code {:
+    Hashtable<String, Integer> ids = new Hashtable<String, Integer>();
+:};
+   
+    /* Parser code to change the way the parser reports errors (include
+   line and column number of the error). */
+parser code {:
+    
+    /* Change the method report_error so it will display the line and
+       column of where the error occurred in the input as well as the
+       reason for the error which is passed into the method in the
+       String 'message'. */
+    public void report_error(String message, Object info) {
+   
+        /* Create a StringBuffer called 'm' with the string 'Error' in it. */
+        StringBuffer m = new StringBuffer("Error");
+   
+        /* Check if the information passed to the method is the same
+           type as the type java_cup.runtime.Symbol. */
+        if (info instanceof java_cup.runtime.Symbol) {
+            /* Declare a java_cup.runtime.Symbol object 's' with the
+               information in the object info that is being typecasted
+               as a java_cup.runtime.Symbol object. */
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+   
+            /* Check if the line number in the input is greater or
+               equal to zero. */
+            if (s.left >= 0) {                
+                /* Add to the end of the StringBuffer error message
+                   the line number of the error in the input. */
+                m.append(" in line "+(s.left+1));   
+                /* Check if the column number in the input is greater
+                   or equal to zero. */
+                if (s.right >= 0)                    
+                    /* Add to the end of the StringBuffer error message
+                       the column number of the error in the input. */
+                    m.append(", column "+(s.right+1));
+            }
+        }
+   
+        /* Add to the end of the StringBuffer error message created in
+           this method the message that was passed into this method. */
+        m.append(" : "+message);
+   
+        /* Print the contents of the StringBuffer 'm', which contains
+           an error message, out on a line. */
+        System.err.println(m);
+    }
+   
+    /* Change the method report_fatal_error so when it reports a fatal
+       error it will display the line and column number of where the
+       fatal error occurred in the input as well as the reason for the
+       fatal error which is passed into the method in the object
+       'message' and then exit.*/
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
+:};
+   
+
+   
+/* ------------Declaration of Terminals and Non Terminals Section----------- */
+   
+/* Terminals (tokens returned by the scanner).  
+
+   Terminals that have no value are listed first and then terminals
+   that do have an value, in this case an integer value, are listed on
+   the next line down. */
+terminal            SEMI, 
+                    SELECT,
+                    DISTINCT, 
+                    FROM, 
+                    WHERE, 
+                    AND, 
+                    NOT, 
+                    COMPARISON, 
+                    IN, 
+                    EXISTS, 
+                    COMMA, 
+                    DOT, 
+                    LPAREN, 
+                    RPAREN;
+
+terminal String    STRING, NAME;
+
+terminal Integer   INTNUM;
+   
+/* Non terminals used in the grammar section.  
+
+   Non terminals that have an object value are listed first and then
+   non terminals that have an integer value are listed.  An object
+   value means that it can be any type, it isn't set to a specific
+   type.  So it could be an Integer or a String or whatever. */
+non terminal Object         sql_start, 
+                            select_stmt, 
+                            opt_distinct, 
+                            select_list,
+                            column_ref,
+                            from_clause,
+                            table_ref_commalist,
+                            table_ref,
+                            table,
+                            range_variable,
+                            opt_where_clause,
+                            where_clause,
+                            search_condition,
+                            predicate,
+                            pred,
+                            comparison_pred,
+                            scalar_exp,
+                            literal,
+                            in_pred,
+                            exists_pred;
+   
+
+/* -------------Precedence and Associatively of Terminals Section----------- */
+   
+/*
+  Precedence of non terminals could be defined here.  If you do define
+  precedence here you won't need to worry about precedence in the
+  Grammar Section, i.e. that TIMES should have a higher precedence
+  than PLUS.
+  
+  The precedence defined here would look something like this where the
+  lower line always will have higher precedence than the line before it.
+   
+  precedence left PLUS, MINUS; 
+  precedence left TIMES, DIVIDE; 
+*/
+
+
+/* ----------------------------Grammar Section-------------------- */
+/*
+
+<sql_start> ::= <select_stmt> SEMI
+
+<select_stmt> ::= SELECT <opt_distinct> <select_list> <from_clause> <opt_where_clause>
+<opt_distinct> ::= empty | DISTINCT
+<select_list> ::= <column_ref> | <select_list> COMMA <column_ref>
+<column_ref> ::= NAME | NAME DOT NAME
+<from_clause> ::= FROM <table_ref_commalist>
+<table_ref_commalist> ::= <table_ref> | <table_ref_commalist> COMMA <table_ref>
+<table_ref> ::= <table> | <table> <range_variable>
+<table> ::= NAME
+<range_variable> ::= NAME
+<opt_where_clause> ::= empty | <where_clause>
+<where_clause> ::= WHERE <search_condition>
+<search_condition> ::= <predicate> | <search_condition> AND <predicate>
+<predicate> ::= <pred> | NOT <pred>
+<pred> ::= <comparison_pred> | <in_pred> | <exists_pred>
+<comparison_pred> ::= <scalar_exp> COMPARISON <scalar_exp>
+<scalar_exp> ::= <literal> | <column_ref>
+<literal> ::= STRING | INTNUM
+<in_pred> ::= <scalar_exp> IN LPAREN <select_stmt> RPAREN
+<exists_pred> ::= EXISTS LPAREN <select_stmt> RPAREN
+    
+*/
+
+sql_start             ::= select_stmt SEMI
+            {: System.out.print(" sql_start "); RESULT = true; :};
+
+select_stmt 	        ::= SELECT opt_distinct select_list from_clause opt_where_clause
+            {: System.out.print(" select_stmt "); RESULT = true; :};
+opt_distinct 	        ::= /*empty*/ | DISTINCT
+            {: System.out.print(" opt_distinct "); RESULT = true; :};
+select_list 	        ::= column_ref | select_list COMMA column_ref
+            {: System.out.print(" select_list "); RESULT = true; :};
+column_ref 	        ::= NAME | NAME DOT NAME
+            {: System.out.print(" column_ref "); RESULT = true; :};
+from_clause 	        ::= FROM table_ref_commalist
+            {: System.out.print(" from_clause "); RESULT = true; :};
+table_ref_commalist 	::= table_ref | table_ref_commalist COMMA table_ref
+            {: System.out.print(" table_ref_commalist "); RESULT = true; :};
+table_ref 	        ::= table | table range_variable
+            {: System.out.print(" table_ref "); RESULT = true; :};
+table 	            ::= NAME
+            {: System.out.print(" table "); RESULT = true; :};
+range_variable 	    ::= NAME
+            {: System.out.print(" range_variable "); RESULT = true; :};
+opt_where_clause 	    ::= /*empty*/ | where_clause
+            {: System.out.print(" opt_where_clause "); RESULT = true; :};
+where_clause 	        ::= WHERE search_condition
+            {: System.out.print(" where_clause "); RESULT = true; :};
+search_condition 	    ::= predicate | search_condition AND predicate
+            {: System.out.print(" search_condition "); RESULT = true; :};
+predicate 	        ::= pred | NOT pred
+            {: System.out.print(" predicate "); RESULT = true; :};
+pred 	                ::= comparison_pred | in_pred | exists_pred
+            {: System.out.print(" pred "); RESULT = true; :};
+comparison_pred 	    ::= scalar_exp COMPARISON scalar_exp
+            {: System.out.print(" comparison_pred "); RESULT = true; :};
+scalar_exp 	        ::= literal | column_ref
+            {: System.out.print(" scalar_exp "); RESULT = true; :};
+literal 	            ::= STRING | INTNUM
+            {: System.out.print(" literal "); RESULT = true; :};
+in_pred 	            ::= scalar_exp IN LPAREN select_stmt RPAREN
+            {: System.out.print(" in_pred "); RESULT = true; :};
+exists_pred 	        ::= EXISTS LPAREN select_stmt RPAREN
+            {: System.out.print(" exists_pred "); RESULT = true; :};

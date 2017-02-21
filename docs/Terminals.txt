@@ -12,3 +12,24 @@ terminal Integer INTNUM
     
     
 double check the flex file
+
+<sql_start> ::= <select_stmt> SEMI
+<select_stmt> ::= SELECT <opt_distinct> <select_list> <from_clause> <opt_where_clause>
+<opt_distinct> ::= /* empty */ | DISTINCT
+<select_list> ::= <column_ref> | <select_list> COMMA <column_ref>
+<column_ref> ::= NAME | NAME DOT NAME
+<from_clause> ::= FROM <table_ref_commalist>
+<table_ref_commalist> ::= <table_ref> | <table_ref_commalist> COMMA <table_ref>
+<table_ref> ::= <table> | <table> <range_variable>
+<table> ::= NAME
+<range_variable> ::= NAME
+<opt_where_clause> ::= /* empty */ | <where_clause>
+<where_clause> ::= WHERE <search_condition>
+<search_condition> ::= <predicate> | <search_condition> AND <predicate>
+<predicate> ::= <pred> | NOT <pred>
+<pred> ::= <comparison_pred> | <in_pred> | <exists_pred>
+<comparison_pred> ::= <scalar_exp> COMPARISON <scalar_exp>
+<scalar_exp> ::= <literal> | <column_ref>
+<literal> ::= STRING | INTNUM
+<in_pred> ::= <scalar_exp> IN LPAREN <select_stmt> RPAREN
+<exists_pred> ::= EXISTS LPAREN <select_stmt> RPAREN
