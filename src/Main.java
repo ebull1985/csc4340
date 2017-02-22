@@ -1,10 +1,7 @@
  /*
   * Ed Bull
   * CSC 4340
-  * Second test case: I know it incorrectly detects as a Semantic error instead of a Syntax error.
-  * Because of the order in which symbol ID is evaluated, it seems to always hit the NullPointerException first
-  * Not sure how to fix it yet.
-  * However, if you test it with x instead of z, you will see you correctly get a Syntax Error.
+  * https://github.com/ebull1985/csc4340
   */
 import java.io.BufferedInputStream;
 import java.io.StringReader;
@@ -16,7 +13,8 @@ public class Main {
 	/*
 	 * Simple UI loop that takes in multi-line input and feeds it to evaluate().
 	 */
-	public static void main(String[] args) {	
+	public static void main(String[] args) {
+		
 		Scanner stdin = new Scanner(new BufferedInputStream(System.in));
 		String cliString = "SQL>";
 		String quitString = "exit;";
@@ -56,7 +54,7 @@ public class Main {
 			parser p = new parser(new Lexer(inputReader));
 			Object result = p.parse().value;
 		} catch (Error e) {
-			System.out.println(e.getMessage());
+			System.out.println("\n" + e.getMessage() + "\n");
 		} catch (Exception e) {
 			//Shouldn't get an Exception unless something really went wrong.
 			e.printStackTrace();
