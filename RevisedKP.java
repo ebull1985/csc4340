@@ -19,8 +19,8 @@ public class Main {
 		String cliString = "SQL>";
 		String quitString = "exit;";
 		String termString = ";";
-        String regex= "@[a-zA-z0-9_]+;";
-        String l;
+                String regex= "@[a-zA-z0-9_]+;"
+                  String l;
 		while (true) {
 			ArrayList<String> input = new ArrayList<String>();
 			String line = "";
@@ -29,14 +29,16 @@ public class Main {
 				System.out.flush();
 				if (stdin.hasNextLine()) {
 					line = stdin.nextLine().trim();
-                    if(line.matches(regex) {
-                        String filename = line.substring(1, line.length() - 1);
-                        BufferedReader in = new BufferedReader(new FileReader("<Filename>"));
-                        while((l = in.readLine()) != null) {
-                            System.out.println(l);
-                        }
-                        in.close();
-                    }
+                                        if(line.equals(regex)
+                                          {
+                                              BufferedReader in = new BufferedReader(new FileReader("<Filename>"));  //Not sure how I will input filename in here
+                                               while((l = in.readLine()) != null)
+                                              {
+                                                  System.out.println(l);
+                                              }
+                                              in.close();
+
+                                          }
 					if (line.equals("") || line.equals(quitString)) break;
 					input.add(line);
 					if (line.endsWith(termString)) break;

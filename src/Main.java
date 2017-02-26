@@ -40,6 +40,7 @@ public class Main {
 	                        BufferedReader fileInput = new BufferedReader(new FileReader(filename));
 	                        String cur;
 	                        while((cur = fileInput.readLine()) != null) input.add(cur);
+	                        System.out.println(String.join("\n", input));
 	                        fileInput.close();
                         } catch(FileNotFoundException e) {
                         	System.out.println("\nFile not found.\n");
