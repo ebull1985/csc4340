@@ -24,6 +24,7 @@ public class Main {
 		String quitString = "exit;";
 		String termString = ";";
         String regex= "@[a-zA-z0-9_\\.]+;";
+        boolean isFileRead = false;
 		while (true) {
 			ArrayList<String> input = new ArrayList<String>();
 			String line = "";
@@ -47,6 +48,7 @@ public class Main {
                         } catch (IOException e) {
                         	System.out.println("\nIO Error.\n");
                         }
+                        isFileRead = true;
                         break;	//Must break to allow input to be processed
                     }
 					if (line.equals("") || line.equals(quitString)) break;
@@ -58,7 +60,8 @@ public class Main {
 			if (line.equals(quitString)) break;		//Quit if the user enters the quitString
 			if (input.size() > 0) {					//Otherwise, convert input to a string and parse it
 				String result = String.join("\n", input);
-				evaluate(result);
+				evaluate(result, isFileRead);
+				isFileRead = false; //After each execution, reset isFileRead
 			}
 			input = new ArrayList<String>();		//Resetting input after processing it
 		}
@@ -70,13 +73,21 @@ public class Main {
 	 * If there is an Error, prints the type.
 	 * If there is an Exception (unintended!) prints a stack trace for debugging.
 	 */
-	private static void evaluate(String input) {
+	private static void evaluate(String input, boolean isFileRead) {
 		StringReader inputReader = new StringReader(input);
 		try {
 			parser p = new parser(new Lexer(inputReader));
 			Object result = p.parse().value;
 		} catch (Error e) {
-			System.out.println("\n" + e.getMessage() + "\n");
+			//As per example in assignment
+			//Need to print only "Syntax Error" or "Lexical Error" if input is from cli
+			//But if input is from a file, print detailed information on a Syntax Error
+			if (isFileRead) System.out.println("\n" + e.getMessage() + "\n");
+			else {
+				if (e.getMessage().startsWith("Syntax Error")) System.out.println("Syntax Error");
+				else if (e.getMessage().startsWith("Lexical Error")) System.out.println("Lexical Error");
+				else System.out.println("\n" + e.getMessage() + "\n");
+			}
 		} catch (Exception e) {
 			//Shouldn't get an Exception unless something really went wrong.
 			e.printStackTrace();
