@@ -10,3 +10,6 @@
 /sql.cup
 /sql.flex
 /sym.class
+/SQLNode.class
+/WhereNode.class
+/Column.class

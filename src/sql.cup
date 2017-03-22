@@ -1,6 +1,6 @@
 /** Import the class java_cup.runtime.*  */
 import java_cup.runtime.*;
-import java.util.Hashtable;
+import java.util.ArrayList;
 
 /* Parser code to change the way the parser reports errors (include
    line and column number of the error). */
@@ -93,26 +93,32 @@ terminal Integer   INTNUM;
    non terminals that have an integer value are listed.  An object
    value means that it can be any type, it isn't set to a specific
    type.  So it could be an Integer or a String or whatever. */
-non terminal Object         sql_start, 
-                            select_stmt, 
-                            opt_distinct, 
-                            select_list,
-                            column_ref,
-                            from_clause,
-                            table_ref_commalist,
-                            table_ref,
-                            table,
-                            range_variable,
-                            opt_where_clause,
-                            where_clause,
-                            search_condition,
-                            predicate,
-                            pred,
-                            comparison_pred,
-                            scalar_exp,
-                            literal,
-                            in_pred,
-                            exists_pred;
+non terminal Object                 opt_where_clause,
+                                    where_clause,
+                                    search_condition,
+                                    predicate,
+                                    pred,
+                                    comparison_pred,
+                                    scalar_exp,
+                                    literal,
+                                    in_pred,
+                                    exists_pred;
+                                    
+non terminal SQLNode                sql_start,
+                                    select_stmt;
+                                    
+non terminal ArrayList<Column>      select_list;
+
+non terminal Boolean                opt_distinct;
+
+non terminal Column                 column_ref;
+                                    
+non terminal ArrayList<String[]>    from_clause,
+                                    table_ref_commalist;
+                                    
+non terminal String[]               table_ref;
+
+non terminal String                 table, tableAlias;
 
 /*------------------------------ Grammar ------------------------------*/
 /*
@@ -138,27 +144,77 @@ non terminal Object         sql_start,
     <exists_pred> ::= EXISTS '(' <select_stmt> ')'
 ------------------------------------------------------------------------*/
 
-sql_start             ::= select_stmt SEMI
-            {:  System.out.println("\nNo Syntax Error\n"); RESULT = true; :};
+/* Returns SQLNode */
+sql_start             ::= select_stmt:s SEMI
+            {:  System.out.println("\nNo Syntax Error\n");
+            SQLNode child = s;
+            SQLNode sqlNode = new SQLNode();
+            child.setParent(sqlNode);
+            RESULT = sqlNode; :};
 
-select_stmt 	        ::= SELECT opt_distinct select_list from_clause opt_where_clause
-            {:  RESULT = true; :};
-opt_distinct 	        ::= /*empty*/ | DISTINCT
-            {:  RESULT = true; :};
-select_list 	        ::= column_ref | select_list COMMA column_ref
-            {:  RESULT = true; :};
-column_ref 	        ::= NAME | NAME DOT NAME
-            {:  RESULT = true; :};
-from_clause 	        ::= FROM table_ref_commalist
-            {:  RESULT = true; :};
-table_ref_commalist 	::= table_ref | table_ref_commalist COMMA table_ref
-            {:  RESULT = true; :};
-table_ref 	        ::= table | table range_variable
-            {:  RESULT = true; :};
-table 	            ::= NAME
-            {:  RESULT = true; :};
-range_variable 	    ::= NAME
-            {:  RESULT = true; :};
+/* Returns SQLNode */
+select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_where_clause
+            {: SQLNode sqlNode = new SQLNode(o, s, r);
+            System.out.println(sqlNode.toString());
+            RESULT = sqlNode; :};
+            
+/* Return boolean true or false */
+opt_distinct 	        ::= /*empty*/
+            {: RESULT = false; :}
+                            |
+                            DISTINCT
+            {: RESULT = true; :};
+
+/* Return ArrayList<Column>*/ 
+select_list 	        ::= column_ref:c
+            {: ArrayList<Column> cols = new ArrayList<Column>();
+            cols.add(c);
+            RESULT = cols; :}
+                            | select_list:s COMMA column_ref:c
+            {: ArrayList<Column> cols = s;
+            cols.add(c);
+            RESULT = cols; :};
+
+/* Return Column */
+column_ref 	        ::= NAME:n
+            {: RESULT = new Column(n); :}
+                        | NAME:p DOT NAME:n
+            {:  RESULT = new Column(p, n); :};
+            
+/* Return ArrayList<String[]> */
+from_clause 	        ::= FROM table_ref_commalist:ts
+            {:  RESULT = ts; :};
+            
+/* Return ArrayList<String[]> */
+table_ref_commalist 	::= table_ref:t
+            {: ArrayList<String[]> tables = new ArrayList<String[]>();
+            tables.add(t);
+            RESULT = tables; :}
+                            | table_ref_commalist:ts COMMA table_ref:t
+            {: ArrayList<String[]> tables = ts;
+            tables.add(t);
+            RESULT = tables; :};
+            
+/* Return String[]. [0]: table name, [1]: table alias */
+table_ref 	        ::= table:t
+            {: String[] tref = new String[2];
+            tref[0] = new String(t);
+            tref[1] = null;
+            RESULT = tref; :}
+                        | table:t tableAlias:a
+            {:  String[] tref = new String[2];
+            tref[0] = new String(t);
+            tref[1] = new String(a);
+            RESULT = tref; :};
+            
+/* Return String */
+table 	            ::= NAME:n
+            {:  RESULT = n; :};
+            
+/* Return String */
+tableAlias 	    ::= NAME:n
+            {:  RESULT = n; :};
+
 opt_where_clause 	    ::= /*empty*/ | where_clause
             {:  RESULT = true; :};
 where_clause 	        ::= WHERE search_condition
