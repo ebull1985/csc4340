@@ -247,8 +247,17 @@ predicate 	        ::= pred:p
             RESULT = p; :};
             
 /* Return WhereNode */
-pred 	                ::= comparison_pred | in_pred | exists_pred
-            {:  RESULT = new WhereNode(); :};
+pred 	                ::= comparison_pred:p
+            {: WhereNode whereNode = p;
+            RESULT = whereNode; :}
+                            | in_pred:p
+            {: WhereNode whereNode = p; 
+            whereNode.setNestingType("in"); 
+            RESULT = whereNode; :}
+                            | exists_pred:p
+            {: WhereNode whereNode = p;
+            whereNode.setNestingType("exists");
+            RESULT = whereNode; :};
             
 comparison_pred 	    ::= scalar_exp COMPARISON scalar_exp
             {:  RESULT = true; :};

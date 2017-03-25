@@ -24,4 +24,8 @@ public class WhereNode {
 	public void setNegated() {
 		this.negated = true;
 	}
+	
+	public void setNestingType(String nestingType) {
+		this.nestingType = nestingType;
+	}
 }
