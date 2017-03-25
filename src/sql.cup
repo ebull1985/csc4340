@@ -93,12 +93,7 @@ terminal Integer   INTNUM;
    non terminals that have an integer value are listed.  An object
    value means that it can be any type, it isn't set to a specific
    type.  So it could be an Integer or a String or whatever. */
-non terminal Object                 opt_where_clause,
-                                    where_clause,
-                                    search_condition,
-                                    predicate,
-                                    pred,
-                                    comparison_pred,
+non terminal Object                 comparison_pred,
                                     scalar_exp,
                                     literal,
                                     in_pred,
@@ -119,6 +114,13 @@ non terminal ArrayList<String[]>    from_clause,
 non terminal String[]               table_ref;
 
 non terminal String                 table, tableAlias;
+
+non terminal ArrayList<WhereNode>   opt_where_clause,
+                                    where_clause,
+                                    search_condition;
+                                    
+non terminal WhereNode              predicate,
+                                    pred;
 
 /*------------------------------ Grammar ------------------------------*/
 /*
@@ -153,8 +155,9 @@ sql_start             ::= select_stmt:s SEMI
             RESULT = sqlNode; :};
 
 /* Returns SQLNode */
-select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_where_clause
+select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_where_clause:owc
             {: SQLNode sqlNode = new SQLNode(o, s, r);
+            if(owc != null) sqlNode.setWhereNodes(owc);
             System.out.println(sqlNode.toString());
             RESULT = sqlNode; :};
             
@@ -215,16 +218,38 @@ table 	            ::= NAME:n
 tableAlias 	    ::= NAME:n
             {:  RESULT = n; :};
 
-opt_where_clause 	    ::= /*empty*/ | where_clause
-            {:  RESULT = true; :};
-where_clause 	        ::= WHERE search_condition
-            {:  RESULT = true; :};
-search_condition 	    ::= predicate | search_condition AND predicate
-            {:  RESULT = true; :};
-predicate 	        ::= pred | NOT pred
-            {:  RESULT = true; :};
+/* Return null or ArrayList<WhereNode> */
+opt_where_clause 	    ::= /*empty*/
+            {: RESULT = null; :}
+                            | where_clause:wns
+            {:  RESULT = wns; :};
+            
+/* Return ArrayList<WhereNode> */
+where_clause 	        ::= WHERE search_condition:wns
+            {:  RESULT = wns; :};
+            
+/* Return ArrayList<WhereNode> */
+search_condition 	    ::= predicate:p
+            {: ArrayList<WhereNode> whereNodes = new ArrayList<WhereNode>();
+            whereNodes.add(p); 
+            RESULT = whereNodes; :}
+                            | search_condition:wns AND predicate:p
+            {: ArrayList<WhereNode> whereNodes = wns;
+            wns.add(p); 
+            RESULT = whereNodes; :};
+            
+/* Return WhereNode */
+predicate 	        ::= pred:p
+            {: RESULT = p; :}
+                        | NOT pred:p
+            {: WhereNode whereNode = p;
+            p.setNegated();
+            RESULT = p; :};
+            
+/* Return WhereNode */
 pred 	                ::= comparison_pred | in_pred | exists_pred
-            {:  RESULT = true; :};
+            {:  RESULT = new WhereNode(); :};
+            
 comparison_pred 	    ::= scalar_exp COMPARISON scalar_exp
             {:  RESULT = true; :};
 scalar_exp 	        ::= literal | column_ref

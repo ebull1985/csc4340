@@ -26,6 +26,10 @@ public class SQLNode {
 		this.parent = parent;
 	}
 	
+	public void setWhereNodes(ArrayList<WhereNode> whereNodes) {
+		this.whereNodes = whereNodes;
+	}
+	
 	public String toString() {
 		ArrayList<String> result = new ArrayList<String>();
 		result.add("\nSQLNode");
