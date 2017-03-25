@@ -83,7 +83,9 @@ terminal            SEMI,
                     LPAREN, 
                     RPAREN;
 
-terminal String    STRING, NAME, INTNUM;
+terminal String     STRING, NAME;
+
+terminal Integer    INTNUM;
 
 /* Non terminals used in the grammar section.  
 
