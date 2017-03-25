@@ -83,9 +83,7 @@ terminal            SEMI,
                     LPAREN, 
                     RPAREN;
 
-terminal String    STRING, NAME;
-
-terminal Integer   INTNUM;
+terminal String    STRING, NAME, INTNUM;
 
 /* Non terminals used in the grammar section.  
 
@@ -93,12 +91,7 @@ terminal Integer   INTNUM;
    non terminals that have an integer value are listed.  An object
    value means that it can be any type, it isn't set to a specific
    type.  So it could be an Integer or a String or whatever. */
-non terminal Object                 comparison_pred,
-                                    scalar_exp,
-                                    literal,
-                                    in_pred,
-                                    exists_pred;
-                                    
+                   
 non terminal SQLNode                sql_start,
                                     select_stmt;
                                     
@@ -120,7 +113,13 @@ non terminal ArrayList<WhereNode>   opt_where_clause,
                                     search_condition;
                                     
 non terminal WhereNode              predicate,
-                                    pred;
+                                    pred,
+                                    comparison_pred,
+                                    in_pred,
+                                    exists_pred;
+                                    
+non terminal Scalar                 literal,
+                                    scalar_exp;
 
 /*------------------------------ Grammar ------------------------------*/
 /*
@@ -157,6 +156,7 @@ sql_start             ::= select_stmt:s SEMI
 /* Returns SQLNode */
 select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_where_clause:owc
             {: SQLNode sqlNode = new SQLNode(o, s, r);
+            for(Column col : s) col.setSN(sqlNode);
             if(owc != null) sqlNode.setWhereNodes(owc);
             System.out.println(sqlNode.toString());
             RESULT = sqlNode; :};
@@ -240,7 +240,8 @@ search_condition 	    ::= predicate:p
             
 /* Return WhereNode */
 predicate 	        ::= pred:p
-            {: RESULT = p; :}
+            {: WhereNode whereNode = p;
+            RESULT = p; :}
                         | NOT pred:p
             {: WhereNode whereNode = p;
             p.setNegated();
@@ -259,13 +260,59 @@ pred 	                ::= comparison_pred:p
             whereNode.setNestingType("exists");
             RESULT = whereNode; :};
             
-comparison_pred 	    ::= scalar_exp COMPARISON scalar_exp
-            {:  RESULT = true; :};
-scalar_exp 	        ::= literal | column_ref
-            {:  RESULT = true; :};
-literal 	            ::= STRING | INTNUM
-            {:  RESULT = true; :};
-in_pred 	            ::= scalar_exp IN LPAREN select_stmt RPAREN
-            {:  RESULT = true; :};
-exists_pred 	        ::= EXISTS LPAREN select_stmt RPAREN
-            {:  RESULT = true; :};
+/* Returns WhereNode */   
+comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
+            {: WhereNode whereNode = new WhereNode();
+            whereNode.setLeftOperandType(sl.getType());
+            switch (sl.getType()) {
+                case "str":
+                    whereNode.setLeftOperandValue(sl.getStrValue());
+                    break;
+                case "int":
+                    whereNode.setLeftOperandValue(sl.getIntValue().toString());
+                    break;
+                case "col":
+                    whereNode.setLeftOperandName(sl.getColValue().getName());
+                    break;
+            }
+            whereNode.setRightOperandType(sr.getType());
+            switch (sr.getType()) {
+                case "str":
+                    whereNode.setRightOperandValue(sr.getStrValue());
+                    break;
+                case "int":
+                    whereNode.setRightOperandValue(sr.getIntValue().toString());
+                    break;
+                case "col":
+                    whereNode.setRightOperandValue(sr.getColValue().getName());
+                    break;
+            }
+            RESULT = whereNode; :};
+            
+/* Returns Scalar */
+scalar_exp 	        ::=     literal:l
+            {: Scalar scalar = l;
+            RESULT = scalar; :}
+                            | column_ref:cr
+            {: Scalar scalar = new Scalar("col", cr);
+            RESULT = scalar; :};
+
+/* Returns Scalar */
+literal 	            ::= STRING:s
+            {: RESULT = new Scalar("str", s); :}
+                            | INTNUM:i
+            {:  RESULT = new Scalar("num", i); :};
+
+/* Returns WhereNode */   
+in_pred 	            ::= scalar_exp IN LPAREN select_stmt:s RPAREN
+            {: WhereNode whereNode = new WhereNode();
+            whereNode.setNestingType("in"); 
+            whereNode.setSubQuery(s); 
+            RESULT = whereNode; :};
+            
+/* Returns WhereNode */   
+exists_pred 	        ::= EXISTS LPAREN select_stmt:s RPAREN
+            {: WhereNode whereNode = new WhereNode();
+            whereNode.setNestingType("exists");
+            whereNode.setSubQuery(s);
+            RESULT = whereNode; :};

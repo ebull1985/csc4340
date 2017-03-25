@@ -30,6 +30,10 @@ public class SQLNode {
 		this.whereNodes = whereNodes;
 	}
 	
+	public ArrayList<WhereNode> getWhereNodes() {
+		return this.whereNodes;
+	}
+	
 	public String toString() {
 		ArrayList<String> result = new ArrayList<String>();
 		result.add("\nSQLNode");

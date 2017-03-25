@@ -15,6 +15,18 @@ public class Column {
 		this.prefix = prefix;
 	}
 	
+	public void setSN(SQLNode sn) {
+		this.sn = sn;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public SQLNode getSN() {
+		return sn;
+	}
+	
 	public String toString() {
 		String p;
 		if(prefix == null) {

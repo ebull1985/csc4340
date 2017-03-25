@@ -19,6 +19,7 @@ public class WhereNode {
 	
 	public WhereNode() {
 		this.negated = false;
+		this.nested = false;
 	}
 	
 	public void setNegated() {
@@ -27,5 +28,47 @@ public class WhereNode {
 	
 	public void setNestingType(String nestingType) {
 		this.nestingType = nestingType;
+		this.nested = true;
+	}
+	
+	public void setSubQuery(SQLNode subQuery) {
+		this.subQuery = subQuery;
+	}
+	
+	
+	
+	
+	
+	
+	public void setLeftOperandType(String type) {
+		this.leftOperandType = type;
+	}
+	
+	public void setLeftOperandValue(String value) {
+		this.leftOperandValue = value;
+	}
+	
+	public void setLeftOperandValue(Integer value) {
+		this.leftOperandValue = value.toString();
+	}
+	public void setLeftOperandName(String name) {
+		this.leftOperandName = name;
+	}
+	
+	
+	
+	public void setRightOperandType(String type) {
+		this.rightOperandType = type;
+	}
+	
+	public void setRightOperandValue(String value) {
+		this.rightOperandValue = value;
+	}
+	
+	public void setRightOperandValue(Integer value) {
+		this.rightOperandValue = value.toString();
+	}
+	public void setRightOperandName(String name) {
+		this.rightOperandName = name;
 	}
 }
