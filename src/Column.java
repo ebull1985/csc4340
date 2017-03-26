@@ -1,7 +1,7 @@
 
 public class Column {
 
-	public String prefix;
+	public String prefix = null;
 	public String name;
 	public SQLNode sn;
 	public int ci;
@@ -17,6 +17,10 @@ public class Column {
 	
 	public void setSN(SQLNode sn) {
 		this.sn = sn;
+	}
+	
+	public void setPrefix(String prefix) {
+		this.prefix = prefix;
 	}
 	
 	public String getName() {

@@ -163,6 +163,21 @@ sql_start             ::= select_stmt:s SEMI
             SQLNode child = s;
             SQLNode sqlNode = new SQLNode();
             child.setParent(sqlNode);
+            //Type checking
+            System.out.println("Printing cols");
+            for(Column checkColumn : ColTypeAssertions.keySet()) {
+                String checkName = checkColumn.getName();
+                if (checkColumn.getPrefix() == null) {
+                    System.out.println("goddamnit");
+                }
+                String checkType = db.getRelation(checkColumn.getPrefix()).attributeType(checkColumn.getName());
+                System.out.println("Checking " + checkName);
+                if(!checkType.equals(ColTypeAssertions.get(checkColumn))) {
+                    System.out.println("cta");
+                }
+            }
+            for(Column checkColumn : ColColAssertions.keySet()) {
+            }
             RESULT = sqlNode; :};
 
 /* Returns SQLNode */
@@ -177,9 +192,10 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     aPrefix = col.getPrefix();
                     if(aliasTables.containsKey(aPrefix)) {
                         aPrefix = aliasTables.get(aPrefix);
+                        col.setPrefix(aPrefix);
                     }
                 }
-                int matchCount = 0;    
+                int matchCount = 0;
                 for(String[] tnames : r) {
                     String tname;
                     if(aliasTables.containsKey(tnames[1])) {
@@ -192,6 +208,7 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                             //No prefix specified, so check each table
                             if(db.getRelation(tname).attributeExists(aName)) {
                                 matchCount++;
+                                col.setPrefix(tname); //Making sure every col has a prefix
                             }
                         } else {
                             //Check only tables beginning with specified prefix
@@ -210,7 +227,7 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                 }
             }
             if(owc != null) sqlNode.setWhereNodes(owc);
-            System.out.println(sqlNode.toString());     
+            //System.out.println(sqlNode.toString());     
             RESULT = sqlNode; :};
             
 /* Return boolean true or false */
@@ -340,8 +357,16 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
                     whereNode.setRightOperandValue(sr.getColValue().getName());
                     break;
             }
+            //TODO
+            //make sure prefix gets set
             //Type checking
-            if (sl.getType() != sr.getType()) {
+            if ((sl.getType() == "num" || sl.getType() == "str") && sr.getType() == "col") {
+                ColTypeAssertions.put(sr.getColValue(), sl.getType());
+            } else if (sl.getType() == "col" && (sr.getType() == "num" || sr.getType() == "str")) {
+                ColTypeAssertions.put(sl.getColValue(), sr.getType());
+            } else if (sl.getType() == "col" && sr.getType() == "col") {
+                ColColAssertions.put(sl.getColValue(), sr.getColValue());
+            } else if (sl.getType() != sr.getType()) {
                 throw new SemanticException("Type mismatch: " + sl.toString() + " " + sr.toString() + ".");
             }
             RESULT = whereNode; :};
@@ -375,7 +400,7 @@ in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
                     ColTypeAssertions.put(s.getColumns().get(0), se.getType());
                 }
             } else {
-                throw new SemanticException("Type mismatch: size greater than length 1.");
+                throw new SemanticException("Type mismatch: Can not compare expression to more than a single column.");
             }
             RESULT = whereNode; :};
             
