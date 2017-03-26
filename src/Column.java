@@ -23,6 +23,10 @@ public class Column {
 		return name;
 	}
 	
+	public String getPrefix() {
+		return prefix;
+	}
+	
 	public SQLNode getSN() {
 		return sn;
 	}

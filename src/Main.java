@@ -99,6 +99,8 @@ public class Main {
 				else if (e.getMessage().startsWith("Lexical Error")) System.out.println("Lexical Error");
 				else System.out.println("\n" + e.getMessage() + "\n");
 			}
+		} catch (SemanticException e) {
+			System.out.println("Semantic Error - " + e.getMessage());
 		} catch (Exception e) {
 			//Shouldn't get an Exception unless something really went wrong.
 			e.printStackTrace();

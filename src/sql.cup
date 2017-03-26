@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 action code {:
+    Database db = Main.getDB();
     //For type checking at top SQLNode
     HashMap<Column, String> ColTypeAssertions = new HashMap<Column, String>();
     HashMap<Column, Column> ColColAssertions = new HashMap<Column, Column>();
@@ -167,9 +168,49 @@ sql_start             ::= select_stmt:s SEMI
 /* Returns SQLNode */
 select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_where_clause:owc
             {: SQLNode sqlNode = new SQLNode(o, s, r);
-            for(Column col : s) col.setSN(sqlNode);
+            for(Column col : s) {
+                col.setSN(sqlNode);
+                String aName = col.getName();
+                String aPrefix = null;
+                if(col.getPrefix() != null) {
+                    //If prefix is present
+                    aPrefix = col.getPrefix();
+                    if(aliasTables.containsKey(aPrefix)) {
+                        aPrefix = aliasTables.get(aPrefix);
+                    }
+                }
+                int matchCount = 0;    
+                for(String[] tnames : r) {
+                    String tname;
+                    if(aliasTables.containsKey(tnames[1])) {
+                        tname = aliasTables.get(tnames[1]);
+                    } else {
+                        tname = tnames[0];
+                    }
+                    if(db.relationExists(tname)) {
+                        if(aPrefix == null) {
+                            //No prefix specified, so check each table
+                            if(db.getRelation(tname).attributeExists(aName)) {
+                                matchCount++;
+                            }
+                        } else {
+                            //Check only tables beginning with specified prefix
+                            if (aPrefix.equals(tname) && db.getRelation(tname).attributeExists(aName)) {
+                                matchCount++;
+                            }
+                        }
+                    } else {
+                        throw new SemanticException("Table does not exist: " + tname);
+                    }
+                }
+                if(matchCount == 0) {
+                    throw new SemanticException("Column not found: " + aName);
+                } else if (matchCount > 1) {
+                    throw new SemanticException("Ambiguous Column Reference: " + aName);
+                }
+            }
             if(owc != null) sqlNode.setWhereNodes(owc);
-            System.out.println(sqlNode.toString());
+            System.out.println(sqlNode.toString());     
             RESULT = sqlNode; :};
             
 /* Return boolean true or false */
