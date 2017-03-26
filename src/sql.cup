@@ -289,6 +289,10 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
                     whereNode.setRightOperandValue(sr.getColValue().getName());
                     break;
             }
+            //Type checking
+            if (sl.getType() != sr.getType()) {
+                throw new SemanticError("Type mismatch: " + s1.toString() + " " sr.toString() + ".");
+            }
             RESULT = whereNode; :};
             
 /* Returns Scalar */
@@ -306,10 +310,24 @@ literal 	            ::= STRING:s
             {:  RESULT = new Scalar("num", i); :};
 
 /* Returns WhereNode */   
-in_pred 	            ::= scalar_exp IN LPAREN select_stmt:s RPAREN
+in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
             {: WhereNode whereNode = new WhereNode();
             whereNode.setNestingType("in"); 
-            whereNode.setSubQuery(s); 
+            whereNode.setSubQuery(s);
+            //Type checking
+            if(s.getColumns().size() == 1) {
+                //This will not work because se.getType returns a type.
+                //Type can be col. Columns don't have a type, so nothing to compare.
+                //TODO
+                //1. check se to see that it is type "col"
+                //2. check database to get the type of se.
+                //3. check database to get the type of the Column from s
+                if(se.getType() != s.getColumns().get(0)) {
+                    
+                }
+            } else {
+                throw new Semantic Error("Type mismatch: size greater than length 1.");
+            }
             RESULT = whereNode; :};
             
 /* Returns WhereNode */   

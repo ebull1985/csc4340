@@ -5,6 +5,7 @@
   */
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -13,11 +14,21 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Main {
-
+	private static String dbname;
+	private static Database db = new Database();
+	
 	/*
 	 * Simple UI loop that takes in multi-line input and feeds it to evaluate().
 	 */
 	public static void main(String[] args) {
+		boolean dbIsSet = setDBName(args);
+		if(!dbIsSet) {
+			System.out.println("Missing or invalid argument: database directory.");
+			System.out.println("Reminder: provide a path to the database directory, NOT a .dat file");
+			return;
+		}
+		db.initializeDatabase(dbname);
+		db.displaySchema();
 		
 		Scanner stdin = new Scanner(new BufferedInputStream(System.in));
 		String cliString = "SQL>";
@@ -92,6 +103,44 @@ public class Main {
 			//Shouldn't get an Exception unless something really went wrong.
 			e.printStackTrace();
 		}
+	}
+	
+	/*
+	 * Sets dbname according to arguments provided. If no dbname is provided, checks if a default exists.
+	 * If a default does not exist,checks for args[1]. If args[1] is an absolute path, sets it. If not, checks to see if it might be a relative path.
+	 */
+	private static boolean setDBName(String[] args) {
+		String path;
+		if(args.length == 0) {
+			try {
+				path = new java.io.File(".").getCanonicalPath() + "/db";
+				if(!new java.io.File(String.join("/", new String[]{path, "catalog.dat"})).exists()) return false;
+			} catch (IOException e) {
+				System.out.println("Error detected current working directory.");
+				return false;
+			}
+		} else if(args.length == 1) {
+			path = args[1];
+			if(!new java.io.File(String.join("/", new String[]{path, "catalog.dat"})).exists()) {
+				try {
+					path = String.join("/", new String[]{new java.io.File(".").getCanonicalPath(), path});
+					if(new java.io.File(String.join("/", new String[]{path, "catalog.dat"})).exists()) return false;
+				} catch (IOException e) {
+					System.out.println("Error detected current working directory.");
+					return false;
+				}
+			}
+		} else {
+			return false;
+		}
+		System.out.println(path);
+		dbname = path;
+		System.out.println("asfdasd");
+		return true;
+	}
+	
+	public static Database getDB() {
+		return db;
 	}
 }
 

@@ -34,4 +34,18 @@ public class Scalar {
 	public Column getColValue() {
 		return colValue;
 	}
+	
+	public String toString() {
+		switch(type) {
+		case "str":
+			return strValue;
+		case "num":
+			return intValue.toString();
+		case "col":
+			return colValue.getName();
+		default:
+			return "Invalid Type";
+		}
+		
+	}
 }
