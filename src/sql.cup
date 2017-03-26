@@ -12,6 +12,8 @@ action code {:
     HashMap<String, String> aliasTables = new HashMap<String, String>();
     ArrayList<Column> whereCols = new ArrayList<Column>();
     ArrayList<String> semantics = new ArrayList<String>();
+    //I know this is kinda a lame way to do it
+    boolean nested = false;
     :};
 
 /* Parser code to change the way the parser reports errors (include
@@ -227,6 +229,8 @@ sql_start             ::= select_stmt:s SEMI
                 }
             }
             System.out.println("No Semantic Error");
+            if(nested) System.out.println("Nested"); //TODO check for if co-related
+            else System.out.println("Not Nested");
             RESULT = sqlNode; :};
 
 /* Returns SQLNode */
@@ -465,6 +469,7 @@ in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
             {: WhereNode whereNode = new WhereNode();
             whereNode.setNestingType("in"); 
             whereNode.setSubQuery(s);
+            nested = true;
             //Type checking
             if(s.getColumns().size() == 1) {
                 //Since the resolve tree won't be ready this far down the grammar
