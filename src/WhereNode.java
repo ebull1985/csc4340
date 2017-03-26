@@ -5,13 +5,13 @@ public class WhereNode {
 	String nestingType; // "in" or "exists"
 	SQLNode subQuery;
 	//If not nested:
-	String leftOperandType; // "col", "num", "str"
+	String leftOperandType = null; // "col", "num", "str"
 	String leftOperandName; // when type is col
 	SQLNode leftResolveNode; // for col
 	int leftResolveIndex; //for col, index into relations list
 	String leftOperandValue; //used when type is "num" or "str"
 	String comparison;
-	String rightOperandType;
+	String rightOperandType = null;
 	String rightOperandName;
 	SQLNode rightResolveNode;
 	int rightResolveIndex;
@@ -43,6 +43,9 @@ public class WhereNode {
 	public void setLeftOperandType(String type) {
 		this.leftOperandType = type;
 	}
+	public String getLeftOperandType() {
+		return this.leftOperandType;
+	}
 	
 	public void setLeftOperandValue(String value) {
 		this.leftOperandValue = value;
@@ -54,11 +57,17 @@ public class WhereNode {
 	public void setLeftOperandName(String name) {
 		this.leftOperandName = name;
 	}
+	public String getLeftOperandName() {
+		return this.leftOperandName;
+	}
 	
 	
 	
 	public void setRightOperandType(String type) {
 		this.rightOperandType = type;
+	}
+	public String getRightOperandType() {
+		return this.rightOperandType;
 	}
 	
 	public void setRightOperandValue(String value) {
@@ -70,5 +79,8 @@ public class WhereNode {
 	}
 	public void setRightOperandName(String name) {
 		this.rightOperandName = name;
+	}
+	public String getRightOperandName() {
+		return this.rightOperandName;
 	}
 }

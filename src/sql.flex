@@ -58,7 +58,7 @@ lineTerminator = \r|\n|\r\n
 
 whiteSpace = {lineTerminator} | [ \t\f]
 
-intNum = 0 | [1-9][0-9]*
+intNum = 0 | [1-9][0-9]* | [0-9]+\.[0-9]+
 
 name = [a-zA-Z0-9_]+
 
@@ -83,7 +83,6 @@ stringLit = (\'[^\']*\'|\"[^\"]*\")
     "," { return symbol(sym.COMMA); }
     "." { return symbol(sym.DOT); }
     "(" { return symbol(sym.LPAREN); }
-    ")" { return symbol(sym.RPAREN); }
     ")" { return symbol(sym.RPAREN); }
     "=" { return symbol(sym.COMPARISON); }
 
