@@ -1,6 +1,15 @@
 /** Import the class java_cup.runtime.*  */
 import java_cup.runtime.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+
+action code {:
+    //For type checking at top SQLNode
+    HashMap<Column, String> ColTypeAssertions = new HashMap<Column, String>();
+    HashMap<Column, Column> ColColAssertions = new HashMap<Column, Column>();
+    //For resolving table names. <alias, tableName>
+    HashMap<String, String> aliasTables = new HashMap<String, String>();
+    :};
 
 /* Parser code to change the way the parser reports errors (include
    line and column number of the error). */
@@ -210,6 +219,7 @@ table_ref 	        ::= table:t
             {:  String[] tref = new String[2];
             tref[0] = new String(t);
             tref[1] = new String(a);
+            aliasTables.put(tref[1], tref[0]);
             RESULT = tref; :};
             
 /* Return String */
@@ -291,7 +301,7 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
             }
             //Type checking
             if (sl.getType() != sr.getType()) {
-                throw new SemanticError("Type mismatch: " + s1.toString() + " " sr.toString() + ".");
+                throw new SemanticException("Type mismatch: " + sl.toString() + " " + sr.toString() + ".");
             }
             RESULT = whereNode; :};
             
@@ -316,17 +326,15 @@ in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
             whereNode.setSubQuery(s);
             //Type checking
             if(s.getColumns().size() == 1) {
-                //This will not work because se.getType returns a type.
-                //Type can be col. Columns don't have a type, so nothing to compare.
-                //TODO
-                //1. check se to see that it is type "col"
-                //2. check database to get the type of se.
-                //3. check database to get the type of the Column from s
-                if(se.getType() != s.getColumns().get(0)) {
-                    
+                //Since the resolve tree won't be ready this far down the grammar
+                //this will save column type assertions in some HashMaps for checking at the root node
+                if(se.getType() == "col") {
+                    ColColAssertions.put(se.getColValue(), s.getColumns().get(0));
+                } else if(se.getType() == "str" || se.getType() == "num") {
+                    ColTypeAssertions.put(s.getColumns().get(0), se.getType());
                 }
             } else {
-                throw new Semantic Error("Type mismatch: size greater than length 1.");
+                throw new SemanticException("Type mismatch: size greater than length 1.");
             }
             RESULT = whereNode; :};
             
