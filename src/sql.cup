@@ -175,63 +175,8 @@ sql_start             ::= select_stmt:s SEMI
             SQLNode child = s;
             SQLNode sqlNode = new SQLNode();
             child.setParent(sqlNode);
-            //Type checking
-            //Column to predefined type
-            for(Column checkColumn : ColTypeAssertions.keySet()) {
-                if (checkColumn.getPrefix() == null) {
-                    throw new SemanticException("Column " + checkColumn.getName() + " does not resolve to a table.");
-                }
-                String checkName = checkColumn.getName();
-                String checkType = db.getRelation(checkColumn.getPrefix()).attributeType(checkColumn.getName());
-                switch (checkType) {
-                    case "VARCHAR":
-                        checkType = "str";
-                        break;
-                    case "INTEGER":
-                    case "DECIMAL":
-                        checkType = "num";
-                        break;
-                }
-                if(!checkType.equals(ColTypeAssertions.get(checkColumn))) {
-                    throw new SemanticException("Type mismatch. " + checkColumn.getName() + " is not type " + ColTypeAssertions.get(checkColumn) + ".");
-                }
-            }
-            //Column to Column
-            //More redundant code, will fix later
-            for(Column checkColumn : ColColAssertions.keySet()) {
-                Column checkColumn2 = ColColAssertions.get(checkColumn);
-                if (checkColumn.getPrefix() == null) {
-                    throw new SemanticException("Column " + checkColumn.getName() + "xdoes not resolve to a table.");
-                }
-                if (checkColumn2.getPrefix() == null) {
-                    throw new SemanticException("Column " + checkColumn2.getName() + "does not resolve to a table.");
-                }
-                String checkName1 = checkColumn.getName();
-                String checkType1 = db.getRelation(checkColumn.getPrefix()).attributeType(checkColumn.getName());
-                String checkName2 = checkColumn2.getName();
-                String checkType2 = db.getRelation(checkColumn2.getPrefix()).attributeType(checkColumn2.getName());
-                switch (checkType1) {
-                    case "VARCHAR":
-                        checkType1 = "str";
-                        break;
-                    case "INTEGER":
-                    case "DECIMAL":
-                        checkType1 = "num";
-                        break;
-                }
-                switch (checkType2) {
-                    case "VARCHAR":
-                        checkType2 = "str";
-                        break;
-                    case "INTEGER":
-                    case "DECIMAL":
-                        checkType2 = "num";
-                        break;
-                }
-                if(!checkType1.equals(checkType2)) {
-                    throw new SemanticException("Type mismatch. " + checkColumn.getName() + " type does not match " + checkColumn2.getName() + ".");
-                }
-            }
+
+
             //Resolve unmatched cols
             ArrayList<String[]> allTNames = new ArrayList<String[]>();
             ArrayList<Column> allCols = new ArrayList<Column>();
@@ -258,6 +203,108 @@ sql_start             ::= select_stmt:s SEMI
                 }
             }
 
+            HashMap<Column, String[]> matches = new HashMap<Column, String[]>();
+            for(Column col : allCols) {
+                String cName = col.getName();
+                String cPrefix = col.getPrefix();         
+                if (cPrefix != null && aliasTables.containsKey(cPrefix)) {
+                    cPrefix = aliasTables.get(cPrefix);
+                }
+                for(String[] tname : allTNames) {
+                    String tName = tname[0];
+                    String tAlias = tname[1];
+                    if(cPrefix != null) {
+                        if(cPrefix.equals(tName)) {
+                            if (matches.containsKey(col) && (!matches.get(col)[0].equals(tName))) {
+                                    throw new SemanticException("Ambiguous column: " + cPrefix + "." + cName);
+                            }
+                            if(!db.relationExists(tName)) throw new SemanticException("Table " + tName + " does not exist.");
+                            if(!db.getRelation(tName).attributeExists(cName)) throw new SemanticException("Column " + cPrefix + "." + cName + " does not resolve for table " + tName + ".");
+                            col.setPrefix(cPrefix);
+                            matches.put(col, tname);
+
+                        }
+                    } else {
+                        if(db.relationExists(tName)) {
+                            if(db.getRelation(tName).attributeExists(cName)) {
+                                if (matches.containsKey(col) && !matches.get(col)[0].equals(tName)) {
+                                    throw new SemanticException("Ambiguous column: " + cName);
+                                } else {
+                                    cPrefix = tName;
+                                    col.setPrefix(cPrefix);
+                                    matches.put(col, tname);
+                                }
+                            }
+                        } else throw new SemanticException("Table " + tName + " does not exist.");
+                    }
+                }
+                if(!matches.containsKey(col) && cPrefix != null) throw new SemanticException("Could not resolve " + cPrefix + "." + cName);
+                else if(!matches.containsKey(col)) throw new SemanticException("Could not resolve "  + cName); 
+            }
+
+
+            //Type checking
+            //Column to predefined type
+            for(Column checkColumn : ColTypeAssertions.keySet()) {
+                String checkName = checkColumn.getName();
+                String checkType = db.getRelation(checkColumn.getPrefix()).attributeType(checkColumn.getName());
+                switch (checkType) {
+                    case "VARCHAR":
+                        checkType = "str";
+                        break;
+                    case "INTEGER":
+                    case "DECIMAL":
+                        checkType = "num";
+                        break;
+                }
+                if(!checkType.equals(ColTypeAssertions.get(checkColumn))) {
+                    throw new SemanticException("Type mismatch. " + checkColumn.getName() + " is not type " + ColTypeAssertions.get(checkColumn) + ".");
+                }
+            }
+            //Column to Column
+            //More redundant code, will fix later
+            for(Column checkColumn : ColColAssertions.keySet()) {
+                Column checkColumn2 = ColColAssertions.get(checkColumn);
+                if (checkColumn.getPrefix() == null) {
+                    throw new SemanticException("Column " + checkColumn.getName() + "does not resolve to a table.");
+                }
+                if (checkColumn2.getPrefix() == null) {
+                    throw new SemanticException("Column " + checkColumn2.getName() + "does not resolve to a table.");
+                }
+                String checkName1 = checkColumn.getName();
+                String checkType1 = null;
+                if(db.relationExists(checkColumn.getPrefix()) && db.getRelation(checkColumn.getPrefix()).attributeExists(checkColumn.getName())) {
+                checkType1 = db.getRelation(checkColumn.getPrefix()).attributeType(checkColumn.getName());
+                } else throw new SemanticException(checkColumn.getPrefix() + "." + checkColumn.getName() + " does not resolve to a table.1");
+                String checkName2 = checkColumn2.getName();
+                String checkType2 = null;
+                if(db.relationExists(checkColumn2.getPrefix()) && db.getRelation(checkColumn2.getPrefix()).attributeExists(checkColumn2.getName())) {
+                checkType2 = db.getRelation(checkColumn2.getPrefix()).attributeType(checkColumn2.getName());
+                } else throw new SemanticException(checkColumn2.getPrefix() + "." + checkColumn2.getName() + " does not resolve to a table.2");
+                switch (checkType1) {
+                    case "VARCHAR":
+                        checkType1 = "str";
+                        break;
+                    case "INTEGER":
+                    case "DECIMAL":
+                        checkType1 = "num";
+                        break;
+                }
+                switch (checkType2) {
+                    case "VARCHAR":
+                        checkType2 = "str";
+                        break;
+                    case "INTEGER":
+                    case "DECIMAL":
+                        checkType2 = "num";
+                        break;
+                }
+                if(!checkType1.equals(checkType2)) {
+                    throw new SemanticException("Type mismatch. " + checkColumn.getName() + " type does not match " + checkColumn2.getName() + ".");
+                }
+            }
+            
+
 
 
             System.out.println("No Semantic Error");
@@ -274,55 +321,11 @@ sql_start             ::= select_stmt:s SEMI
 /* Returns SQLNode */
 select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_where_clause:owc
             {: SQLNode sqlNode = new SQLNode(o, s, r);
+            //Setting Column SQLNodes
             for(Column col : s) {
                 col.setSN(sqlNode);
-                String aName = col.getName();
-                String tempAlias = null;
-                //Prefix is present, so check if it's an alias and change it if it is
-                if(col.getPrefix() != null) {
-                    //If prefix is an alias, set it to its target
-                    if(aliasTables.containsKey(col.getPrefix())) {
-                        tempAlias = col.getPrefix();
-                        col.setPrefix(aliasTables.get(col.getPrefix()));
-                    }
-                }
-                int matchCount = 0;
-                for(String[] tnames : r) {
-                    String tname;
-                    if(aliasTables.containsKey(tnames[1])) {
-                        tname = aliasTables.get(tnames[1]);
-                    } else {
-                        tname = tnames[0];
-                    }
-                    //As we iterate through table names, if the table name exists and contains
-                    //the attribute, set it as the col prefix and increment matchCount
-                    if(db.relationExists(tname)) {
-                        if(col.getPrefix() == null) {
-                            if(db.getRelation(tname).attributeExists(aName)) {
-                                matchCount++;
-                                col.setPrefix(tname); //Making sure every col has a prefix
-                            }
-                        } else {
-                            //Check only tables beginning with specified prefix
-                            if (col.getPrefix().equals(tname) && db.getRelation(tname).attributeExists(aName)) {
-                                if (tempAlias != null && tempAlias.equals(tnames[1])) {
-                                    matchCount++;
-                                } else if (tempAlias == null) {
-                                    matchCount++;
-                                }
-                            }
-                        }
-                    } else {
-                        semantics.add("Table does not exist: " + tname);
-                    }
-                }
-                if(matchCount == 0) {
-                    //semantics.add("Column not found: " + aName);
-                } else if (matchCount > 1) {
-                    semantics.add("Ambiguous Column Reference: " + col.getPrefix() + "." + aName + ".");
-                }
             }
-
+            //Setting WhereNode Column SQLNodes
             if(owc != null) {
                 sqlNode.setWhereNodes(owc);
                 for(WhereNode wn : owc) {
@@ -335,34 +338,6 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     }
                 }
             }
-            //I know this code is a bit redundant but short on time, don't want to integrate
-            //Make sure that each wherePrefix resolves to somewhere
-            //And is not ambiguous
-            for(Column whereCol : whereCols) {
-                if(whereCol.getPrefix() != null && aliasTables.containsKey(whereCol.getPrefix())) {
-                    whereCol.setPrefix(aliasTables.get(whereCol.getPrefix()));
-                    String wherePrefix = whereCol.getPrefix();
-                }
-                for(String[] tnames : r) {
-                    String tname;
-                    if(aliasTables.containsKey(tnames[1])) {
-                        tname = aliasTables.get(tnames[1]);
-                    } else {
-                        tname = tnames[0];
-                    }
-                    if(db.relationExists(tname)) {
-                        //No prefix specified, so check each table
-                        if(db.getRelation(tname).attributeExists(whereCol.getName())) {
-                            if(whereCol.getPrefix() == null) {
-                                whereCol.setPrefix(tname); //Making sure every col has a prefix
-                            }
-                        }
-                    } else {
-                        semantics.add("Table does not exist: " + tname);
-                    }
-                }
-            }
-            //More redundant code, but this needs to be done.
             //Checking for co-relatedness. There are 2 criteria:
             //1: the column did not resolve in its parent SQLNode -- check for this here
             //2: the column resolves in some other SQLNode -- this is already checked above
@@ -438,6 +413,7 @@ table_ref 	        ::= table:t
             {:  String[] tref = new String[2];
             tref[0] = new String(t);
             tref[1] = new String(a);
+            if (aliasTables.containsKey(tref[1])) semantics.add("Alias " + tref[1] + " name collision.");
             aliasTables.put(tref[1], tref[0]);
             RESULT = tref; :};
             
@@ -524,14 +500,10 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
             //make sure prefix gets set
             //Type checking
             if ((sl.getType().equals("num") || sl.getType().equals("str")) && sr.getType().equals("col")) {
-                whereCols.add(sr.getColValue());
                 ColTypeAssertions.put(sr.getColValue(), sl.getType());
             } else if (sl.getType().equals("col") && (sr.getType().equals("num") || sr.getType().equals("str"))) {
-                whereCols.add(sl.getColValue());
                 ColTypeAssertions.put(sl.getColValue(), sr.getType());
             } else if (sl.getType().equals("col") && sr.getType().equals("col")) {
-                whereCols.add(sl.getColValue());
-                whereCols.add(sr.getColValue());
                 ColColAssertions.put(sl.getColValue(), sr.getColValue());
             } else if (!sl.getType().equals(sr.getType())) {
                 semantics.add("Type mismatch: " + sl.toString() + " " + sr.toString() + ".");
