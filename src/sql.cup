@@ -321,6 +321,11 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     }
                     if(db.relationExists(tname)) {
                         //No prefix specified, so check each table
+                        if(db.getRelation(tname).attributeExists(whereCol.getName())) {
+                            if(whereCol.getPrefix() == null) {
+                                whereCol.setPrefix(tname); //Making sure every col has a prefix
+                            }
+                        }
                     } else {
                         semantics.add("Table does not exist: " + tname);
                     }
