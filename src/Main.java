@@ -128,7 +128,7 @@ public class Main {
 				return false;
 			}
 		} else if(args.length == 1) {
-			path = args[1];
+			path = args[0];
 			if(!new java.io.File(String.join("/", new String[]{path, "catalog.dat"})).exists()) {
 				try {
 					path = String.join("/", new String[]{new java.io.File(".").getCanonicalPath(), path});
