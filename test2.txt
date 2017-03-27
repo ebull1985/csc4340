@@ -1,0 +1,1 @@
+select distinct CNAME from CUSTOMERS where CNO in (select CNO from ORDERS where ONO in (select ONO from ODETAILS where PNO in (select PNO from PARTS where PRICE < 20.00 )));

@@ -31,6 +31,11 @@ public class Scalar {
 		return strValue;
 	}
 	
+	public String getValue() {
+		if(type.equals("int")) return intValue.toString();
+		else return strValue;
+	}
+	
 	public Column getColValue() {
 		return colValue;
 	}

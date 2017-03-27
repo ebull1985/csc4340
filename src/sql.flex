@@ -84,11 +84,14 @@ stringLit = (\'[^\']*\'|\"[^\"]*\")
     "." { return symbol(sym.DOT); }
     "(" { return symbol(sym.LPAREN); }
     ")" { return symbol(sym.RPAREN); }
-    "=" { return symbol(sym.COMPARISON); }
+    =|<|>|<=|>= { return symbol(sym.COMPARISON); }
 
-    {intNum}      { return symbol(sym.INTNUM, new Integer(yytext()));}
+    {intNum}            { //Nobody mentioned supporting decimals, so I will truncate for now
+                          String numString = yytext();
+                          numString = numString.substring(0, numString.indexOf("."));
+                          return symbol(sym.INTNUM, new Integer(numString));}
     
-    {stringLit}       { String text = new String(yytext());
+    {stringLit}         { String text = new String(yytext());
                          if (text.length() > 2) {
                             text = new String(text.substring(1, text.length() - 1));
                          } else {
@@ -99,7 +102,7 @@ stringLit = (\'[^\']*\'|\"[^\"]*\")
                          
     {name}              { return symbol(sym.NAME, new String(yytext()));}
     
-    {whiteSpace}       { /* just skip what was found, do nothing */ } 
+    {whiteSpace}        { /* just skip what was found, do nothing */ } 
 }
 
 /* No token was found for the input so through an error.  Print out an

@@ -135,9 +135,7 @@ public class Main {
 		} else {
 			return false;
 		}
-		System.out.println(path);
 		dbname = path;
-		System.out.println("asfdasd");
 		return true;
 	}
 	

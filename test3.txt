@@ -1,0 +1,1 @@
+select CNO from ORDERS where exists (select ONO from ODETAILS where ODETAILS.ONO = ORDERS.ONO and ODETAILS.PNO = 10506) and exists (select ONO from ODETAILS where ODETAILS.ONO = ORDERS.ONO and ODETAILS.PNO = 10507) and;

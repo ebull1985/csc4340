@@ -234,7 +234,7 @@ sql_start             ::= select_stmt:s SEMI
                 if(coRelated) {
                     System.out.println("Nested - Co-related");
                 } else {
-                    System.out.println("Nested");
+                    System.out.println("Nested - Not Co-related");
                 }
             }
             else System.out.println("Not Nested");
@@ -286,8 +286,10 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     semantics.add("Ambiguous Column Reference: " + aName + ".1");
                 }
             }
-            if(owc != null) sqlNode.setWhereNodes(owc);
-            for(WhereNode wn : owc) if(wn.getNested()) nested = true;
+            if(owc != null) {
+                sqlNode.setWhereNodes(owc);
+                for(WhereNode wn : owc) if(wn.getNested()) nested = true;
+            }
             //I know this code is a bit redundant but short on time, don't want to integrate
             //This is basically doing the same thing but for cols from whereNodes
             //Every time a SQLNode is created, check its tables to see if that's where they resolve
@@ -312,9 +314,6 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                                     for(String[] relation : whereCol.getSN().getRelations()) {
                                         whereRelations.add(relation[0]);
                                     }
-                                    if (!whereRelations.contains(tname)) {
-                                        coRelated = true;
-                                    }
                                 }
                             }
                         }
@@ -322,7 +321,34 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                         semantics.add("Table does not exist: " + tname);
                     }
                 }
-            }    
+            }
+            //More redundant code, but this needs to be done.
+            //Checking for co-relatedness. There are 2 criteria:
+            //1: the column did not resolve in its parent SQLNode -- check for this here
+            //2: the column resolves in some other SQLNode -- this is already checked above
+            if(owc != null) {
+                for (WhereNode wn : owc) {
+                    if(wn.getNested()) {
+                        SQLNode subQuery = wn.getSubQuery();
+                        ArrayList<Column> subCols = subQuery.getColumns();
+                        for(WhereNode swn : subQuery.getWhereNodes()) {
+                            //Add to subCols any cols from where queries
+                            //No need to dive into subqueries, that'll be recursion
+                            if(swn.getLeftOperandType() != null && swn.getLeftOperandType().equals("col")) {
+                                subCols.add(swn.getLeftOperandCol());
+                            }
+                            if(swn.getRightOperandType() != null && swn.getRightOperandType().equals("col") && !swn.getNested()) {
+                                subCols.add(swn.getRightOperandCol());
+                            }
+                        }
+                        for(Column subCol : subCols) {
+                            if(subCol.getSN() != subQuery) {
+                                coRelated = true;
+                            }
+                        }
+                    }
+                }
+            }
             RESULT = sqlNode; :};
             
 /* Return boolean true or false */
@@ -437,7 +463,7 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
                     whereNode.setLeftOperandValue(sl.getIntValue().toString());
                     break;
                 case "col":
-                    whereNode.setLeftOperandName(sl.getColValue().getName());
+                    whereNode.setLeftOperandCol(sl.getColValue());
                     whereCols.add(sl.getColValue());
                     break;
             }
@@ -450,7 +476,7 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
                     whereNode.setRightOperandValue(sr.getIntValue().toString());
                     break;
                 case "col":
-                    whereNode.setRightOperandName(sr.getColValue().getName());
+                    whereNode.setRightOperandCol(sr.getColValue());
                     whereCols.add(sr.getColValue());
                     break;
             }
@@ -499,13 +525,21 @@ in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
                 if(se.getType().equals("col")) {
                     ColColAssertions.put(se.getColValue(), s.getColumns().get(0));
                     whereCols.add(se.getColValue());
+                    whereNode.setLeftOperandType(se.getType());
+                    whereNode.setLeftOperandCol(se.getColValue());
                 } else if(se.getType().equals("str") || se.getType().equals("num")) {
                     ColTypeAssertions.put(s.getColumns().get(0), se.getType());
                     whereCols.add(se.getColValue());
+                    whereNode.setLeftOperandType(se.getType());
+                    whereNode.setLeftOperandValue(se.getValue());
                 }
+                whereCols.add(s.getColumns().get(0));
+                whereNode.setRightOperandType("col");
+                whereNode.setRightOperandCol(s.getColumns().get(0));
             } else {
                 semantics.add("Type mismatch: Can not compare expression to more than a single column.");
             }
+
             RESULT = whereNode; :};
             
 /* Returns WhereNode */   

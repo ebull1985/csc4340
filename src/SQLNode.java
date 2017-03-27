@@ -15,8 +15,8 @@ public class SQLNode {
 	}
 	
 	public SQLNode(boolean distinct,
-				ArrayList<Column> columns, 
-				ArrayList<String[]> relations) {
+		ArrayList<Column> columns, 
+		ArrayList<String[]> relations) {
 		this.distinct = distinct;
 		this.columns = columns;
 		this.relations = relations;
