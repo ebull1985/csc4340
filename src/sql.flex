@@ -88,7 +88,7 @@ stringLit = (\'[^\']*\'|\"[^\"]*\")
 
     {intNum}            { //Nobody mentioned supporting decimals, so I will truncate for now
                           String numString = yytext();
-                          numString = numString.substring(0, numString.indexOf("."));
+                          if(numString.contains(".")) numString = numString.substring(0, numString.indexOf("."));
                           return symbol(sym.INTNUM, new Integer(numString));}
     
     {stringLit}         { String text = new String(yytext());

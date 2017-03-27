@@ -32,6 +32,7 @@ public class Column {
 	}
 	
 	public SQLNode getSN() {
+		if(this.name.equals("PNO") && this.prefix.equals("PARTS")) System.out.println("WHOA");
 		return sn;
 	}
 	

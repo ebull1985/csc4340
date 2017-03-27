@@ -34,6 +34,9 @@ public class WhereNode {
 		this.nestingType = nestingType;
 		this.nested = true;
 	}
+	public String getNestingType() {
+		return this.nestingType;
+	}
 	
 	public boolean getNested() {
 		return this.nested;
@@ -79,6 +82,7 @@ public class WhereNode {
 		this.rightOperandType = type;
 	}
 	public String getRightOperandType() {
+		if(this.rightOperandType == null) return null;
 		return this.rightOperandType;
 	}
 	

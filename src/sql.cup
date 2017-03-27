@@ -58,7 +58,7 @@ parser code {:
    
         /* Print the contents of the StringBuffer 'm', which contains
            an error message, out on a line. */
-        throw new Error("Syntax Error " + m.toString());
+        throw new Error("Syntax Error - " + m.toString());
     }
    
     /* Change the method report_fatal_error so when it reports a fatal
@@ -286,9 +286,18 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     semantics.add("Ambiguous Column Reference: " + aName + ".1");
                 }
             }
+
             if(owc != null) {
                 sqlNode.setWhereNodes(owc);
-                for(WhereNode wn : owc) if(wn.getNested()) nested = true;
+                for(WhereNode wn : owc) {
+                    if(wn.getNested()) nested = true;
+                    if(wn.getLeftOperandType() != null && wn.getLeftOperandType().equals("col")) {
+                        wn.getLeftOperandCol().setSN(sqlNode);
+                    }
+                    if(wn.getRightOperandType() != null && wn.getRightOperandType().equals("col") && (wn.getNested() && (!wn.getNestingType().equals("in") || !wn.getNestingType().equals("exists")))) {
+                        wn.getRightOperandCol().setSN(sqlNode);
+                    }
+                }
             }
             //I know this code is a bit redundant but short on time, don't want to integrate
             //This is basically doing the same thing but for cols from whereNodes
@@ -534,8 +543,6 @@ in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
                     whereNode.setLeftOperandValue(se.getValue());
                 }
                 whereCols.add(s.getColumns().get(0));
-                whereNode.setRightOperandType("col");
-                whereNode.setRightOperandCol(s.getColumns().get(0));
             } else {
                 semantics.add("Type mismatch: Can not compare expression to more than a single column.");
             }
@@ -548,4 +555,5 @@ exists_pred 	        ::= EXISTS LPAREN select_stmt:s RPAREN
             whereNode.setNestingType("exists");
             whereNode.setNested();
             whereNode.setSubQuery(s);
+            whereCols.addAll(s.getColumns());
             RESULT = whereNode; :};
