@@ -2,6 +2,7 @@
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Stack;
 
 action code {:
     Database db = Main.getDB();
@@ -15,6 +16,8 @@ action code {:
     //I know this is kinda a lame way to do it
     boolean nested = false;
     boolean coRelated = false;
+    //Unmatched columns
+    HashMap<Column, String[]> unmatchedCols = new HashMap<Column, String[]>();
     :};
 
 /* Parser code to change the way the parser reports errors (include
@@ -229,6 +232,34 @@ sql_start             ::= select_stmt:s SEMI
                     throw new SemanticException("Type mismatch. " + checkColumn.getName() + " type does not match " + checkColumn2.getName() + ".");
                 }
             }
+            //Resolve unmatched cols
+            ArrayList<String[]> allTNames = new ArrayList<String[]>();
+            ArrayList<Column> allCols = new ArrayList<Column>();
+            
+            SQLNode curSN;
+            Stack<SQLNode> bucket = new Stack<SQLNode>();
+            bucket.push(child);
+            while (true) {
+                if(bucket.empty()) break;
+                curSN = bucket.pop();
+                allTNames.addAll(curSN.getRelations());
+                allCols.addAll(curSN.getColumns());
+                if(curSN.getWhereNodes() == null) break;
+                for(WhereNode wn : curSN.getWhereNodes()) {
+                    if(wn.getLeftOperandType() != null && wn.getLeftOperandType().equals("col")) {
+                        allCols.add(wn.getLeftOperandCol());
+                    }
+                    if(wn.getRightOperandType() != null && wn.getRightOperandType().equals("col")) {
+                        allCols.add(wn.getRightOperandCol());
+                    }
+                    if(wn.getSubQuery() != null) {
+                        bucket.push(wn.getSubQuery());
+                    }
+                }
+            }
+
+
+
             System.out.println("No Semantic Error");
             if(nested) {
                 if(coRelated) {
@@ -286,7 +317,7 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     }
                 }
                 if(matchCount == 0) {
-                    semantics.add("Column not found: " + aName);
+                    //semantics.add("Column not found: " + aName);
                 } else if (matchCount > 1) {
                     semantics.add("Ambiguous Column Reference: " + col.getPrefix() + "." + aName + ".");
                 }

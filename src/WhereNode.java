@@ -3,7 +3,7 @@ public class WhereNode {
 	boolean negated;
 	boolean nested;
 	String nestingType; // "in" or "exists"
-	SQLNode subQuery;
+	SQLNode subQuery = null;
 	//If not nested:
 	String leftOperandType = null; // "col", "num", "str"
 	Column leftOperandCol; // when type is col

@@ -5,10 +5,10 @@ import java.util.ArrayList;
  */
 public class SQLNode {
 	boolean distinct;
-	ArrayList<Column> columns;
-	ArrayList<String[]> relations;
-	ArrayList<WhereNode> whereNodes;
-	SQLNode parent;
+	ArrayList<Column> columns = null;
+	ArrayList<String[]> relations = null;
+	ArrayList<WhereNode> whereNodes = null;
+	SQLNode parent = null;
 	
 	public SQLNode() {
 		
