@@ -3,7 +3,7 @@ public class Column {
 
 	public String prefix = null;
 	public String name;
-	public SQLNode sn;
+	public SQLNode sn = null;
 	public int ci;
 	
 	public Column(String name) {

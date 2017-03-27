@@ -14,6 +14,7 @@ action code {:
     ArrayList<String> semantics = new ArrayList<String>();
     //I know this is kinda a lame way to do it
     boolean nested = false;
+    boolean coRelated = false;
     :};
 
 /* Parser code to change the way the parser reports errors (include
@@ -175,7 +176,7 @@ sql_start             ::= select_stmt:s SEMI
             //Column to predefined type
             for(Column checkColumn : ColTypeAssertions.keySet()) {
                 if (checkColumn.getPrefix() == null) {
-                    throw new SemanticException("Column " + checkColumn.getName() + "does not resolve to a table.");
+                    throw new SemanticException("Column " + checkColumn.getName() + " does not resolve to a table.");
                 }
                 String checkName = checkColumn.getName();
                 String checkType = db.getRelation(checkColumn.getPrefix()).attributeType(checkColumn.getName());
@@ -197,7 +198,7 @@ sql_start             ::= select_stmt:s SEMI
             for(Column checkColumn : ColColAssertions.keySet()) {
                 Column checkColumn2 = ColColAssertions.get(checkColumn);
                 if (checkColumn.getPrefix() == null) {
-                    throw new SemanticException("Column " + checkColumn.getName() + "does not resolve to a table.");
+                    throw new SemanticException("Column " + checkColumn.getName() + "xdoes not resolve to a table.");
                 }
                 if (checkColumn2.getPrefix() == null) {
                     throw new SemanticException("Column " + checkColumn2.getName() + "does not resolve to a table.");
@@ -229,7 +230,13 @@ sql_start             ::= select_stmt:s SEMI
                 }
             }
             System.out.println("No Semantic Error");
-            if(nested) System.out.println("Nested"); //TODO check for if co-related
+            if(nested) {
+                if(coRelated) {
+                    System.out.println("Nested - Co-related");
+                } else {
+                    System.out.println("Nested");
+                }
+            }
             else System.out.println("Not Nested");
             RESULT = sqlNode; :};
 
@@ -240,12 +247,11 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                 col.setSN(sqlNode);
                 String aName = col.getName();
                 String aPrefix = null;
+                //Prefix is present, so check if it's an alias and change it if it is
                 if(col.getPrefix() != null) {
-                    //If prefix is present
-                    aPrefix = col.getPrefix();
-                    if(aliasTables.containsKey(aPrefix)) {
-                        aPrefix = aliasTables.get(aPrefix);
-                        col.setPrefix(aPrefix);
+                    //If prefix is an alias, set it to its target
+                    if(aliasTables.containsKey(col.getPrefix())) {
+                        col.setPrefix(aliasTables.get(col.getPrefix()));
                     }
                 }
                 int matchCount = 0;
@@ -256,9 +262,10 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     } else {
                         tname = tnames[0];
                     }
+                    //As we iterate through table names, if the table name exists and contains
+                    //the attribute, set it as the col prefix and increment matchCount
                     if(db.relationExists(tname)) {
-                        if(aPrefix == null) {
-                            //No prefix specified, so check each table
+                        if(col.getPrefix() == null) {
                             if(db.getRelation(tname).attributeExists(aName)) {
                                 matchCount++;
                                 col.setPrefix(tname); //Making sure every col has a prefix
@@ -276,10 +283,11 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                 if(matchCount == 0) {
                     semantics.add("Column not found: " + aName);
                 } else if (matchCount > 1) {
-                    semantics.add("Ambiguous Column Reference: " + aName);
+                    semantics.add("Ambiguous Column Reference: " + aName + ".1");
                 }
             }
             if(owc != null) sqlNode.setWhereNodes(owc);
+            for(WhereNode wn : owc) if(wn.getNested()) nested = true;
             //I know this code is a bit redundant but short on time, don't want to integrate
             //This is basically doing the same thing but for cols from whereNodes
             //Every time a SQLNode is created, check its tables to see if that's where they resolve
@@ -296,8 +304,18 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                         if(db.getRelation(tname).attributeExists(whereCol.getName())) {
                             if(whereCol.getPrefix() == null) {
                                 whereCol.setPrefix(tname); //Making sure every col has a prefix
-                            } else if (!whereCol.getPrefix().equals(tname)) {
-                                semantics.add("Ambiguous Column Reference: " + whereCol.getName());
+                                //Checking to see if the WhereNode's original SQLNode
+                                //Contains this table. If not, we have found this table in another
+                                //SQLNode and can say with confidence that it is co-related.
+                                if (whereCol.getSN() != null && sqlNode != whereCol.getSN()) {
+                                    ArrayList<String> whereRelations = new ArrayList<String>();
+                                    for(String[] relation : whereCol.getSN().getRelations()) {
+                                        whereRelations.add(relation[0]);
+                                    }
+                                    if (!whereRelations.contains(tname)) {
+                                        coRelated = true;
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -440,10 +458,14 @@ comparison_pred 	    ::= scalar_exp:sl COMPARISON scalar_exp:sr
             //make sure prefix gets set
             //Type checking
             if ((sl.getType().equals("num") || sl.getType().equals("str")) && sr.getType().equals("col")) {
+                whereCols.add(sr.getColValue());
                 ColTypeAssertions.put(sr.getColValue(), sl.getType());
             } else if (sl.getType().equals("col") && (sr.getType().equals("num") || sr.getType().equals("str"))) {
+                whereCols.add(sl.getColValue());
                 ColTypeAssertions.put(sl.getColValue(), sr.getType());
             } else if (sl.getType().equals("col") && sr.getType().equals("col")) {
+                whereCols.add(sl.getColValue());
+                whereCols.add(sr.getColValue());
                 ColColAssertions.put(sl.getColValue(), sr.getColValue());
             } else if (!sl.getType().equals(sr.getType())) {
                 semantics.add("Type mismatch: " + sl.toString() + " " + sr.toString() + ".");
@@ -468,16 +490,18 @@ literal 	            ::= STRING:s
 in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
             {: WhereNode whereNode = new WhereNode();
             whereNode.setNestingType("in"); 
+            whereNode.setNested();
             whereNode.setSubQuery(s);
-            nested = true;
             //Type checking
             if(s.getColumns().size() == 1) {
                 //Since the resolve tree won't be ready this far down the grammar
                 //this will save column type assertions in some HashMaps for checking at the root node
                 if(se.getType().equals("col")) {
                     ColColAssertions.put(se.getColValue(), s.getColumns().get(0));
+                    whereCols.add(se.getColValue());
                 } else if(se.getType().equals("str") || se.getType().equals("num")) {
                     ColTypeAssertions.put(s.getColumns().get(0), se.getType());
+                    whereCols.add(se.getColValue());
                 }
             } else {
                 semantics.add("Type mismatch: Can not compare expression to more than a single column.");
@@ -488,5 +512,6 @@ in_pred 	            ::= scalar_exp:se IN LPAREN select_stmt:s RPAREN
 exists_pred 	        ::= EXISTS LPAREN select_stmt:s RPAREN
             {: WhereNode whereNode = new WhereNode();
             whereNode.setNestingType("exists");
+            whereNode.setNested();
             whereNode.setSubQuery(s);
             RESULT = whereNode; :};

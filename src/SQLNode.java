@@ -38,6 +38,10 @@ public class SQLNode {
 		return this.whereNodes;
 	}
 	
+	public ArrayList<String[]> getRelations() {
+		return this.relations;
+	}
+	
 	public String toString() {
 		ArrayList<String> result = new ArrayList<String>();
 		result.add("\nSQLNode");

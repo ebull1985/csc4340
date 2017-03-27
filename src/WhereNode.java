@@ -26,13 +26,25 @@ public class WhereNode {
 		this.negated = true;
 	}
 	
+	public void setNested() {
+		this.nested = true;
+	}
+	
 	public void setNestingType(String nestingType) {
 		this.nestingType = nestingType;
 		this.nested = true;
 	}
 	
+	public boolean getNested() {
+		return this.nested;
+	}
+	
 	public void setSubQuery(SQLNode subQuery) {
 		this.subQuery = subQuery;
+	}
+	
+	public SQLNode getSubQuery() {
+		return this.subQuery;
 	}
 	
 	
