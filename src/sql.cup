@@ -246,10 +246,12 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
             for(Column col : s) {
                 col.setSN(sqlNode);
                 String aName = col.getName();
+                String tempAlias = null;
                 //Prefix is present, so check if it's an alias and change it if it is
                 if(col.getPrefix() != null) {
                     //If prefix is an alias, set it to its target
                     if(aliasTables.containsKey(col.getPrefix())) {
+                        tempAlias = col.getPrefix();
                         col.setPrefix(aliasTables.get(col.getPrefix()));
                     }
                 }
@@ -272,7 +274,9 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                         } else {
                             //Check only tables beginning with specified prefix
                             if (col.getPrefix().equals(tname) && db.getRelation(tname).attributeExists(aName)) {
-                                matchCount++;
+                                if (tempAlias != null && tempAlias == tnames[1]) {
+                                    matchCount++;
+                                }
                             }
                         }
                     } else {
