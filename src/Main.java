@@ -115,8 +115,14 @@ public class Main {
 		String path;
 		if(args.length == 0) {
 			try {
-				path = new java.io.File(".").getCanonicalPath() + "/db";
-				if(!new java.io.File(String.join("/", new String[]{path, "catalog.dat"})).exists()) return false;
+				path = new java.io.File(".").getCanonicalPath() + "\\src";
+				if(path.endsWith("src")) {
+					path = path.substring(0, path.length() - 3);
+				}
+				path = path + "/db";
+				if(!new java.io.File(String.join("/", new String[]{path, "catalog.dat"})).exists()) {
+					return false;
+				}
 			} catch (IOException e) {
 				System.out.println("Error detected current working directory.");
 				return false;

@@ -246,7 +246,6 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
             for(Column col : s) {
                 col.setSN(sqlNode);
                 String aName = col.getName();
-                String aPrefix = null;
                 //Prefix is present, so check if it's an alias and change it if it is
                 if(col.getPrefix() != null) {
                     //If prefix is an alias, set it to its target
@@ -272,7 +271,7 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                             }
                         } else {
                             //Check only tables beginning with specified prefix
-                            if (aPrefix.equals(tname) && db.getRelation(tname).attributeExists(aName)) {
+                            if (col.getPrefix().equals(tname) && db.getRelation(tname).attributeExists(aName)) {
                                 matchCount++;
                             }
                         }
@@ -283,7 +282,7 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                 if(matchCount == 0) {
                     semantics.add("Column not found: " + aName);
                 } else if (matchCount > 1) {
-                    semantics.add("Ambiguous Column Reference: " + aName + ".1");
+                    semantics.add("Ambiguous Column Reference: " + col.getPrefix() + "." + aName + ".");
                 }
             }
 
