@@ -274,7 +274,9 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                         } else {
                             //Check only tables beginning with specified prefix
                             if (col.getPrefix().equals(tname) && db.getRelation(tname).attributeExists(aName)) {
-                                if (tempAlias != null && tempAlias == tnames[1]) {
+                                if (tempAlias != null && tempAlias.equals(tnames[1])) {
+                                    matchCount++;
+                                } else if (tempAlias == null) {
                                     matchCount++;
                                 }
                             }
@@ -303,9 +305,13 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                 }
             }
             //I know this code is a bit redundant but short on time, don't want to integrate
-            //This is basically doing the same thing but for cols from whereNodes
-            //Every time a SQLNode is created, check its tables to see if that's where they resolve
+            //Make sure that each wherePrefix resolves to somewhere
+            //And is not ambiguous
             for(Column whereCol : whereCols) {
+                if(whereCol.getPrefix() != null && aliasTables.containsKey(whereCol.getPrefix())) {
+                    whereCol.setPrefix(aliasTables.get(whereCol.getPrefix()));
+                    String wherePrefix = whereCol.getPrefix();
+                }
                 for(String[] tnames : r) {
                     String tname;
                     if(aliasTables.containsKey(tnames[1])) {
@@ -315,20 +321,6 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                     }
                     if(db.relationExists(tname)) {
                         //No prefix specified, so check each table
-                        if(db.getRelation(tname).attributeExists(whereCol.getName())) {
-                            if(whereCol.getPrefix() == null) {
-                                whereCol.setPrefix(tname); //Making sure every col has a prefix
-                                //Checking to see if the WhereNode's original SQLNode
-                                //Contains this table. If not, we have found this table in another
-                                //SQLNode and can say with confidence that it is co-related.
-                                if (whereCol.getSN() != null && sqlNode != whereCol.getSN()) {
-                                    ArrayList<String> whereRelations = new ArrayList<String>();
-                                    for(String[] relation : whereCol.getSN().getRelations()) {
-                                        whereRelations.add(relation[0]);
-                                    }
-                                }
-                            }
-                        }
                     } else {
                         semantics.add("Table does not exist: " + tname);
                     }
