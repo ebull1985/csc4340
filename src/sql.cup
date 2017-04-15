@@ -19,7 +19,10 @@ action code {:
     boolean coRelated = false;
     //Unmatched columns
     HashMap<Column, ArrayList<String[]>> unmatchedCols = new HashMap<Column, ArrayList<String[]>>();
+    //For checking for superfluous relations
+    ArrayList<String[]> relations = new ArrayList<String[]>();
     :};
+    
 
 /* Parser code to change the way the parser reports errors (include
    line and column number of the error). */
@@ -188,13 +191,27 @@ sql_start             ::= select_stmt:s SEMI
 							fromStrings.add(String.format("%s %s", relation[0], relation[1]));
 						}
 					}
-					semantics.add(String.format("Unmatched Column : %s.%s from %s", unmatchedPrefix, unmatchedName, String.join(", ", fromStrings)));
+					semantics.add(String.format("Unmatched Columns: %s.%s from %s", unmatchedPrefix, unmatchedName, String.join(", ", fromStrings)));
 				}
 			}
+			
+			/* For now this isn't working well
+			//Handle unmatched tables
+            if (relations.size() > 0) {
+            	ArrayList<String> relStrings = new ArrayList<String>();
+            	for (String[] rel : relations) {
+            		relStrings.add(rel[0]);
+            	}
+            	semantics.add(String.format("Unmatched relations: %s", String.join(", ", relStrings)));
+            }
+            */
+            
+			//Handle Semantics errors
             if(semantics.size() > 0) {
                 String errorMsg = String.join("\n", semantics);
                 throw new SemanticException(errorMsg);
             }
+            
             
             //Fix prefixes
             for (Column col : newPrefixes.keySet()) {
@@ -300,6 +317,11 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
                 }
             }
             
+            //Store from clause
+            for (String[] rel : r) {
+            	relations.add(rel);
+            }
+            
             //Check to see if select_list resolves to from_clause
             //1. Get each column from select_list
             //2. Check to see if it matches each table from from_clause
@@ -352,6 +374,7 @@ select_stmt 	        ::= SELECT opt_distinct:o select_list:s from_clause:r opt_w
         				//We matched
         				col.setIndex(matchIndex);
         				if (unmatchedCols.containsKey(col)) unmatchedCols.remove(col);
+        				relations.remove(tables);
         			} else {
         				semantics.add(String.format("Relation does not exist in database: %s.%s", prefix, name));
         			}
@@ -529,6 +552,7 @@ table_ref 	        ::= table:t
             {: String[] tref = new String[2];
             tref[0] = new String(t);
             tref[1] = null;
+            if (!db.relationExists(tref[0])) semantics.add("Table does not exist: " + tref[0]);
             RESULT = tref; :}
                         | table:t tableAlias:a
             {:  String[] tref = new String[2];
@@ -536,6 +560,8 @@ table_ref 	        ::= table:t
             tref[1] = new String(a);
             if (aliasTables.containsKey(tref[1])) semantics.add("Alias " + tref[1] + " name collision."); //If an alias already exists, prepare an error.
             aliasTables.put(tref[1], tref[0]); //Otherwise, set it in aliasTables
+            //Check to make sure the table exists here
+            if (!db.relationExists(tref[0])) semantics.add("Table does not exist: " + tref[0]);
             RESULT = tref; :};
             
 /* Return String */
