@@ -34,6 +34,9 @@ public class WhereNode {
 		this.nestingType = nestingType;
 		this.nested = true;
 	}
+	
+	
+	
 	public String getNestingType() {
 		return this.nestingType;
 	}
@@ -50,6 +53,12 @@ public class WhereNode {
 		return this.subQuery;
 	}
 	
+	public SQLNode getLeftResolveNode() {
+		return this.leftResolveNode;
+	}
+	public SQLNode getRightResolveNode() {
+		return this.rightResolveNode;
+	}
 	
 	
 	
@@ -72,8 +81,17 @@ public class WhereNode {
 	public void setLeftOperandCol(Column col) {
 		this.leftOperandCol = col;
 	}
+	public void setLeftResolveNode(SQLNode sql) {
+		this.leftResolveNode = sql;
+	}
+	public void setLeftResolveIndex(int i) {
+		this.leftResolveIndex = i;
+	}
 	public Column getLeftOperandCol() {
 		return this.leftOperandCol;
+	}
+	public int getLeftResolveIndex() {
+		return this.leftResolveIndex;
 	}
 	
 	
@@ -96,7 +114,16 @@ public class WhereNode {
 	public void setRightOperandCol(Column col) {
 		this.rightOperandCol = col;
 	}
+	public void setRightResolveNode(SQLNode sql) {
+		this.rightResolveNode = sql;
+	}
+	public void setRightResolveIndex(int i) {
+		this.rightResolveIndex = i;
+	}
 	public Column getRightOperandCol() {
 		return this.rightOperandCol;
+	}
+	public int getRightResolveIndex() {
+		return this.rightResolveIndex;
 	}
 }

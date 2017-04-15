@@ -23,6 +23,10 @@ public class Column {
 		this.prefix = prefix;
 	}
 	
+	public void setIndex(int ci) {
+		this.ci = ci;
+	}
+	
 	public String getName() {
 		return name;
 	}
@@ -33,6 +37,10 @@ public class Column {
 	
 	public SQLNode getSN() {
 		return sn;
+	}
+	
+	public int getIndex() {
+		return ci;
 	}
 	
 	public String toString() {

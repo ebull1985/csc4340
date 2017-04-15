@@ -42,6 +42,10 @@ public class SQLNode {
 		return this.relations;
 	}
 	
+	public String[] getTable(int i) {
+		return this.relations.get(i);
+	}
+	
 	public String toString() {
 		ArrayList<String> result = new ArrayList<String>();
 		result.add("\nSQLNode");
