@@ -85,10 +85,9 @@ public class Main {
 	 * If there is an Exception (unintended!) prints a stack trace for debugging.
 	 */
 	private static void evaluate(String input, boolean isFileRead) {
-		StringReader inputReader = new StringReader(input);
 		try {
-			parser p = new parser(new Lexer(inputReader));
-			Object result = p.parse().value;
+			parser p = new parser(new Lexer(new StringReader(input)));
+			p.parse();
 		} catch (Error e) {
 			//As per example in assignment
 			//Need to print only "Syntax Error" or "Lexical Error" if input is from cli
@@ -147,6 +146,10 @@ public class Main {
 	
 	public static Database getDB() {
 		return db;
+	}
+	
+	public static String getDBName() {
+		return dbname;
 	}
 }
 

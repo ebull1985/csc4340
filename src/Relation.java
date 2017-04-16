@@ -13,7 +13,9 @@ public class Relation {
 
   // Actual data storage (list of tuples) for the relation.
   private ArrayList<Tuple> table;
-
+  // Counter to facilitate iterator on tuples
+  private int      counter=0;
+  
   /*******************************************************************
    * Construct a relation with given domain names.
    * @param name name of the relation
@@ -21,6 +23,7 @@ public class Relation {
    * @param dNames domain names (type names of attributes)
    */
   public Relation (String name, ArrayList<String> attributes, ArrayList<String> dNames) {
+	  this.counter=0;
     this.name = name;
     this.attributes = attributes;
     this.domains = dNames;
@@ -30,7 +33,7 @@ public class Relation {
   public boolean attributeExists(String aname) {
     for (int i=0; i<attributes.size(); i++) {
       String a = attributes.get(i);
-      if (a.equals(aname))
+      if (a.equalsIgnoreCase(aname))
         return true;
     }
     return false;
@@ -39,7 +42,7 @@ public class Relation {
   public String attributeType(String aname) {
     for (int i=0; i<attributes.size(); i++) {
       String a = attributes.get(i);
-      if (a.equals(aname))
+      if (a.equalsIgnoreCase(aname))
         return domains.get(i);
     }
     return null;
@@ -213,19 +216,27 @@ public class Relation {
     ArrayList<String> d = new ArrayList<String>();
     for (int i=0; i<this.attributes.size(); i++) {
       String aname = this.attributes.get(i);
+      /*
       if (r.attributeExists(aname))
         a.add(this.name+"."+aname);
       else
         a.add(aname);
+       */
+      if (!r.attributeExists(aname)) //This was not compatible with the setPrefix function. Since I'm following the example and setting prefixes, can't do that here or bad things happen
+    	  a.add(aname);
       String dname = this.domains.get(i);
       d.add(dname);
     }
     for (int i=0; i<r.attributes.size(); i++) {
       String aname = r.attributes.get(i);
+      /*
       if (this.attributeExists(aname))
         a.add(r.name+"."+aname);
       else
         a.add(aname);
+        */
+      if (!this.attributeExists(aname)) //Same as the change above.
+    	  a.add(aname);
       String dname = r.domains.get(i);
       d.add(dname);
     }
@@ -331,5 +342,205 @@ public class Relation {
     }
     return r;
   }
+  
 
+  public Relation cloneRelation() {
+    return select("num","1","=","num","1");
+  }
+  
+  public void prefixColumnNames(String pre) {
+    for (int i=0; i<attributes.size(); i++) {
+      String aname = (String) attributes.get(i);
+      attributes.set(i,pre+"."+aname);
+    }
+  }
+  
+  public Relation notSelect(String lopType, String lopValue, String comparison,
+                         String ropType, String ropValue) {
+    ArrayList<String> attr = new ArrayList<String>();
+    ArrayList<String> dom = new ArrayList<String>();
+    for (int i=0; i<attributes.size(); i++) {
+      String aname = attributes.get(i);
+      String atype = domains.get(i);
+      attr.add(aname);
+      dom.add(atype);
+    }
+    Relation r = new Relation(null,attr,dom);
+    // Now lets add the tuples to r
+    int numAttr = attr.size();
+    int numTuples = table.size();
+    for (int i=0; i<numTuples; i++) {
+      Tuple t = table.get(i);
+      if (!t.select(lopType, lopValue, comparison, ropType, ropValue)) {
+        Tuple tup = t.clone(attr);
+        r.addTuple(tup);
+      }
+    }
+    return r;
+  }
+
+  public boolean existsTuples() {
+    return (table.size() > 0);
+  }
+  
+  
+  public boolean evalIn(String lopType, String lopValue) {
+  // This operator will be invoked only on single attribute relation
+  // lopValue will contain a "value" whose type will match the single attribute
+  // lopType will ALWAYS be "str" or "num" - should not be "col"
+    int numTuples = table.size();
+    for (int i=0; i<numTuples; i++) {
+      ArrayList<Comparable> t = (ArrayList<Comparable>) table.get(i).getTuple();
+      Tuple tup = new Tuple(attributes,domains,t);
+      String ropColName = (String) attributes.get(0);
+      if (tup.select(lopType, lopValue, "=", "col", ropColName))
+        return true;
+    }
+    return false;     
+  }
+
+  
+
+  public Relation selectionIn(String lopType, String lopValue, Relation subQuery) {
+    ArrayList<String> attr = new ArrayList<String>();
+    ArrayList<String> dom = new ArrayList<String>();
+    for (int i=0; i<attributes.size(); i++) {
+      String aname = (String) attributes.get(i);
+      String atype = (String) domains.get(i);
+      attr.add(aname);
+      dom.add(atype);
+    }
+    Relation r = new Relation(null,attr,dom);
+
+    // Now lets add the tuples to r
+    int numAttr = attr.size();
+    int numTuples = table.size();
+    for (int i=0; i<numTuples; i++) {
+      ArrayList<Comparable> t = (ArrayList<Comparable>) table.get(i).getTuple();
+      String ldt = null;
+      String lv = null;
+      if (lopType.equals("col")) {
+        int index = attr.indexOf(lopValue);
+        String lopDataType = (String) dom.get(index);
+        if (lopDataType.equals("VARCHAR")) {
+          ldt = "str";
+          lv = (String) t.get(index);
+        }
+        else if (lopDataType.equals("INTEGER")) {
+          ldt = "num";
+          Integer lvi = (Integer) t.get(index);
+          lv = lvi.toString();
+        }
+        else {
+          ldt = "num";
+          Double lvi = (Double) t.get(index);
+          lv = lvi.toString();
+        }
+      }
+      else if (lopType.equals("num")) {
+        ldt = "num";
+        lv = lopValue;
+      } 
+      else {
+        ldt = "str";
+        lv = lopValue;
+      }
+      if (subQuery.evalIn(ldt, lv)){
+        
+		r.table.add(new Tuple(attr,dom,t));
+	  }
+    }
+    return r;
+  }
+  
+  
+  public Relation notSelectionIn(String lopType, String lopValue, Relation subQuery) {
+    ArrayList<String> attr = new ArrayList<String>();
+    ArrayList<String> dom = new ArrayList<String>();
+    for (int i=0; i<attributes.size(); i++) {
+      String aname = (String) attributes.get(i);
+      String atype = (String) domains.get(i);
+      attr.add(aname);
+      dom.add(atype);
+    }
+    Relation r = new Relation(null,attr,dom);
+
+    // Now lets add the tuples to r
+    int numAttr = attr.size();
+    int numTuples = table.size();
+    for (int i=0; i<numTuples; i++) {
+      ArrayList<Comparable> t = (ArrayList<Comparable>) table.get(i).getTuple();
+      String ldt = null;
+      String lv = null;
+      if (lopType.equals("col")) {
+        int index = attr.indexOf(lopValue);
+        String lopDataType = (String) dom.get(index);
+        if (lopDataType.equals("VARCHAR")) {
+          ldt = "str";
+          lv = (String) t.get(index);
+        }
+        else if (lopDataType.equals("INTEGER")) {
+          ldt = "num";
+          Integer lvi = (Integer) t.get(index);
+          lv = lvi.toString();
+        }
+        else {
+          ldt = "num";
+          Double lvi = (Double) t.get(index);
+          lv = lvi.toString();
+        }
+      }
+      else if (lopType.equals("num")) {
+        ldt = "num";
+        lv = lopValue;
+      } 
+      else {
+        ldt = "str";
+        lv = lopValue;
+      }
+      if (!subQuery.evalIn(ldt, lv)){
+        
+		r.table.add(new Tuple(attr,dom,t));
+	  }
+    }
+    return r;
+  }
+  
+  
+  
+  
+  public Tuple first() {
+    if (table.isEmpty())
+      return null;
+    counter = 0;
+    ArrayList<Comparable> tup = (ArrayList<Comparable>) table.get(counter).getTuple();
+    Tuple t = new Tuple(attributes,domains,tup);
+    return t;
+  }
+
+  public Tuple next() {
+    if (table.isEmpty())
+      return null;
+    if (table.size() <= (counter+1))
+      return null;
+    counter++;
+    ArrayList<Comparable> tup = (ArrayList<Comparable>) table.get(counter).getTuple();
+    Tuple t = new Tuple(attributes,domains,tup);
+    return t;
+  }
+
+  public Tuple current() {
+    if (table.isEmpty())
+      return null;
+    if (table.size() > (counter+1))
+      return null;
+    ArrayList<Comparable> tup = (ArrayList<Comparable>) table.get(counter).getTuple();
+    Tuple t = new Tuple(attributes,domains,tup);
+    return t;
+  }
+  
+  
+  
 }
+
+ 

@@ -12,6 +12,38 @@ public class Tuple {
     tuple = new ArrayList<Comparable>();
   }
 
+
+  Tuple (ArrayList<String> attr, ArrayList<String> dom, ArrayList<Comparable> t) {
+    attributes = attr;
+    domains = dom;
+    tuple = t;
+  }
+  
+  public ArrayList<Comparable> getTuple(){
+	  return tuple;
+	  
+  }
+  
+  String extractColumnValueAsString(String colName) {
+    int index = attributes.indexOf(colName);
+    String colType = (String) domains.get(index);
+    String cval = null;
+    if (colType.equals("VARCHAR"))
+      cval = (String) tuple.get(index);
+    else if (colType.equals("INTEGER")) {
+      Integer ival = (Integer) tuple.get(index);
+      cval = "" + ival.intValue();
+    }
+    else {
+      Double dval = (Double) tuple.get(index);
+      cval = "" + dval.doubleValue();
+    }
+    return cval;
+  }
+  
+  
+  
+  
   public void addStringComponent(String s) {
     tuple.add(s);
   }
@@ -96,6 +128,56 @@ public class Tuple {
     }
     return tup;
   }
+  
+  
+   
+  public Tuple extendedProject(ArrayList<String>  ct, ArrayList<String>  cn) {
+    ArrayList<String>  attr = new ArrayList<String> ();
+    ArrayList<String>  doms = new ArrayList<String> ();
+    ArrayList<Comparable>  tup = new ArrayList<Comparable>(); 
+    for (int i=0; i<cn.size(); i++) {
+      String colType = (String) ct.get(i);
+      if (colType.equals("COLUMN")) {
+        String cname = (String) cn.get(i);
+        int index = attributes.indexOf(cname);
+        String ctype = (String) domains.get(index);
+        doms.add(ctype);
+        tup.add(tuple.get(index));
+      }
+      else if (colType.equals("VARCHAR")) {
+        tup.add((String) cn.get(i));
+        doms.add("VARCHAR");
+      }
+      else if (colType.equals("INTEGER")) {
+        String sval = (String) cn.get(i);
+        Integer ival = null;
+        try {
+          ival = new Integer(Integer.parseInt(sval));
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number");
+          }
+        tup.add(ival);
+        doms.add("INTEGER");
+      } 
+      else if (colType.equals("DECIMAL")) {
+        String sval = (String) cn.get(i);
+        Double dval = null;
+        try {
+          dval = new Double(Double.parseDouble(sval));
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number");
+          }
+        tup.add(dval);
+        doms.add("DECIMAL");
+      } 
+    }
+    Tuple t = new Tuple(cn,doms,tup);
+    return t; 
+  }
+  
+  
+  
+  //----------------------
 
   // Week 6
   public boolean select(String lopType, String lopValue, String comparison,

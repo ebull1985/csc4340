@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 
 public class WhereNode {
 	boolean negated;
@@ -33,6 +34,10 @@ public class WhereNode {
 	public void setNestingType(String nestingType) {
 		this.nestingType = nestingType;
 		this.nested = true;
+	}
+	
+	public void setComparison(String c) {
+		this.comparison = c;
 	}
 	
 	
@@ -126,4 +131,82 @@ public class WhereNode {
 	public int getRightResolveIndex() {
 		return this.rightResolveIndex;
 	}
+	
+	
+	public Relation evaluate(Relation parent, String dbName) {
+		Database db = new Database();
+		db.initializeDatabase(dbName);
+		
+		//Comparison
+		if (!nested) {
+			String left;
+			Relation leftRelation;
+			if (leftOperandType.equals("col")) {
+				left = String.format("%s.%s", leftOperandCol.getPrefix(), leftOperandCol.getName());
+				leftRelation = db.getRelation(leftOperandCol.getPrefix());
+				leftRelation.prefixColumnNames(leftOperandCol.getPrefix());
+				ArrayList<String> lname = new ArrayList<String>();
+				lname.add(leftOperandCol.getName());
+				leftRelation = leftRelation.project(lname);
+			}
+			else {
+				left = leftOperandValue;
+				leftRelation = parent;
+			}
+			
+			String right;
+			if (rightOperandType.equals("col")) right = String.format("%s.%s", rightOperandCol.getPrefix(), rightOperandCol.getName());
+			else right = rightOperandValue;
+			
+			
+			/*
+			 * I'm not sure why I'm getting an array index out of bounds here.
+			 * Some queries work, but others throw ArrayIndexOutOfBounds exceptions from the Tuple class.
+			 * Looking at the parameters passed in to select(), I can't see a difference as to why some would break and some wouldn't.
+			 */
+			//parent.displayRelation();
+			//String debug = String.format("%s, %s, %s, %s, %s", leftOperandType, left, comparison, rightOperandType, right);
+			//System.out.println(debug);
+			
+			if (!negated) return leftRelation.select(leftOperandType, left, comparison, rightOperandType, right); //ArrayIndexOutOfBounds?? See above
+			else return leftRelation.notSelect(leftOperandType, left, comparison, rightOperandType, right);
+		}
+		
+		//In
+		if (nested && nestingType.equals("in")) {
+			String left;
+			Relation leftRelation;
+			if (leftOperandType.equals("col")) {
+				left = String.format("%s.%s", leftOperandCol.getPrefix(), leftOperandCol.getName());
+				leftRelation = db.getRelation(leftOperandCol.getPrefix());
+				leftRelation.prefixColumnNames(leftOperandCol.getPrefix());
+				ArrayList<String> lname = new ArrayList<String>();
+				lname.add(leftOperandCol.getName());
+				leftRelation = leftRelation.project(lname);
+			}
+			else {
+				left = leftOperandValue;
+				leftRelation = parent;
+			}
+			Relation subRelation = subQuery.evaluate(dbName);
+			
+			
+			if (!negated) return leftRelation.selectionIn(leftOperandType, left, subRelation);
+			else return leftRelation.notSelectionIn(leftOperandType, left, subRelation);
+		}
+		
+		//Exists
+		//Create a Relation from the subQuery
+		if (nested && nestingType.equals("exists")) {
+			Relation subRelation = subQuery.evaluate(dbName);
+			//parent.displayRelation();
+			//subRelation.displayRelation();
+			Relation join = parent.join(subRelation);
+			if(!negated) return join;	//I'm really shaky on my relational algebra but I think this is right...
+			else return join; //TODO
+		}
+		
+		return null;
+	}
+	
 }

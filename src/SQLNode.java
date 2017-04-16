@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Stack;
 
 /*
  * SQLNode represents any node that is not a WhereNode
@@ -46,21 +47,72 @@ public class SQLNode {
 		return this.relations.get(i);
 	}
 	
-	public String toString() {
-		ArrayList<String> result = new ArrayList<String>();
-		result.add("\nSQLNode");
-		result.add("\ndistinct: " + distinct);
-		ArrayList<String> colStrings = new ArrayList<String>();
-		for(Column col : columns) colStrings.add(col.toString());
-		result.add("\ncolumns:\n" + String.join("\n", colStrings));
-		ArrayList<String> relStrings = new ArrayList<String>();
-		for(String[] rel : relations) {
-			if(rel[1] == null) relStrings.add(rel[0]);
-			else relStrings.add(rel[0] + ":" + rel[1]);
+	//Going to actually evaluate here.
+	public Relation evaluate(String dbName) {
+		Database db = new Database();
+		db.initializeDatabase(dbName);
+		ArrayList<String> usedTables = new ArrayList<String>();
+		//Table names go onto a stack
+		Stack<String> tableStack = new Stack<String>();
+		for (String[] r : this.relations) {
+			tableStack.push(r[0]);
 		}
-		result.add("\nrelations:\n" + String.join("\n", relStrings));
-		result.add("===================");
-		return String.join("\n", result);
+		
+		//Pull table names from stack and create a relation from the db for each one
+		//Set its prefix to its table name
+		//multiply them together
+		//Don't do this for duplicate tables
+		String tn = tableStack.pop();
+		Relation curRelation = db.getRelation(tn);
+		curRelation.prefixColumnNames(tn);
+		usedTables.add(tn);
+		int count = 0;
+		//System.out.println(count++);
+		//curRelation.displayRelation();
+		while (tableStack.size() > 0) {
+			//System.out.println(count++);
+			tn = tableStack.pop();
+			if (!usedTables.contains(tn)) {
+				//System.out.println(tn);
+				Relation nextRelation = db.getRelation(tn);
+				nextRelation.prefixColumnNames(tn);
+				usedTables.add(tn);
+				curRelation = curRelation.times(nextRelation);
+				//curRelation.displayRelation();
+			}
+		}
+		
+		if (this.whereNodes != null) {
+			for (WhereNode ewn : this.whereNodes) {
+				try {
+					Relation whereRelation = ewn.evaluate(curRelation, dbName);
+					curRelation = whereRelation;
+				}
+				catch (NullPointerException e) {
+					//This should never happen but if it does just means to stop processing them
+				}
+			}
+		}
+		
+		//Project the columns from the select statement
+		ArrayList<String> p = new ArrayList<String>();
+		for (Column ec : columns) {
+			String cname = String.format("%s.%s", ec.getPrefix(), ec.getName());
+			p.add(cname);
+		}
+
+		if (curRelation.project(p) != null)
+		curRelation = curRelation.project(p);
+
+		
+		//Algorithm
+		//Multiply all the relations from this.relations together: curRelation
+		//Get all WhereNodes
+		//Intersection of curRelation and each WhereNode
+		//Return result
+		
+		if (distinct) curRelation.removeDuplicates();
+		return curRelation;
 	}
 	
 }

@@ -43,13 +43,11 @@ public class Column {
 		return ci;
 	}
 	
-	public String toString() {
-		String p;
-		if(prefix == null) {
-			p = "";
-		} else {
-			p = prefix;
-		}
-		return p + '.' + name;
+	public String evaluate() {
+		String result = "";
+		//Get the SQLNode
+		//What if this is in a WhereNode and resolves to somewhere else?
+		
+		return result;
 	}
 }
