@@ -140,22 +140,36 @@ public class WhereNode {
 		//Comparison
 		if (!nested) {
 			String left;
-			Relation leftRelation;
+			Relation leftRelation = parent;
 			if (leftOperandType.equals("col")) {
+				//If the left column doesn't exist in the relation, add it
 				left = String.format("%s.%s", leftOperandCol.getPrefix(), leftOperandCol.getName());
-				leftRelation = db.getRelation(leftOperandCol.getPrefix());
-				leftRelation.prefixColumnNames(leftOperandCol.getPrefix());
-				ArrayList<String> lname = new ArrayList<String>();
-				lname.add(leftOperandCol.getName());
-				leftRelation = leftRelation.project(lname);
+				if (!leftRelation.attributeExists(left)) {
+					leftRelation.displayRelation();
+					System.out.println("Attr " + left + " did not exist. Adding it");
+					leftRelation = db.getRelation(leftOperandCol.getPrefix());
+					leftRelation.prefixColumnNames(leftOperandCol.getPrefix());
+					ArrayList<String> lname = new ArrayList<String>();
+					lname.add(left);
+					leftRelation = parent.times(leftRelation.project(lname));
+					leftRelation.displayRelation();
+				}
+				
 			}
-			else {
-				left = leftOperandValue;
-				leftRelation = parent;
-			}
+			else left = leftOperandValue;
 			
 			String right;
-			if (rightOperandType.equals("col")) right = String.format("%s.%s", rightOperandCol.getPrefix(), rightOperandCol.getName());
+			if (rightOperandType.equals("col")) {
+				//If the right column doesn't exist in the relation, add it
+				right = String.format("%s.%s", rightOperandCol.getPrefix(), rightOperandCol.getName());
+				if (!leftRelation.attributeExists(right)) {
+					Relation rightRelation = db.getRelation(rightOperandCol.getPrefix());
+					rightRelation.prefixColumnNames(rightOperandCol.getPrefix());
+					ArrayList<String> rname = new ArrayList<String>();
+					rname.add(right);
+					leftRelation = parent.times(rightRelation.project(rname));
+				}
+			}
 			else right = rightOperandValue;
 			
 			
@@ -175,21 +189,25 @@ public class WhereNode {
 		//In
 		if (nested && nestingType.equals("in")) {
 			String left;
-			Relation leftRelation;
+			Relation leftRelation = parent;
 			if (leftOperandType.equals("col")) {
+				//If the left col doesn't exist in the relation, add it
 				left = String.format("%s.%s", leftOperandCol.getPrefix(), leftOperandCol.getName());
-				leftRelation = db.getRelation(leftOperandCol.getPrefix());
-				leftRelation.prefixColumnNames(leftOperandCol.getPrefix());
-				ArrayList<String> lname = new ArrayList<String>();
-				lname.add(leftOperandCol.getName());
-				leftRelation = leftRelation.project(lname);
-			}
-			else {
-				left = leftOperandValue;
-				leftRelation = parent;
-			}
+				if (!leftRelation.attributeExists(left)) {
+					leftRelation = db.getRelation(leftOperandCol.getPrefix());
+					leftRelation.prefixColumnNames(leftOperandCol.getPrefix());
+					ArrayList<String> lname = new ArrayList<String>();
+					lname.add(left);
+					leftRelation = parent.times(leftRelation.project(lname));
+				}
+			} else left = leftOperandValue;
+			
+			//Get the subQuery
 			Relation subRelation = subQuery.evaluate(dbName);
 			
+			//parent.displayRelation();
+			//String debug = String.format("%s, %s", leftOperandType, left);
+			//System.out.println(debug);
 			
 			if (!negated) return leftRelation.selectionIn(leftOperandType, left, subRelation);
 			else return leftRelation.notSelectionIn(leftOperandType, left, subRelation);
@@ -201,9 +219,9 @@ public class WhereNode {
 			Relation subRelation = subQuery.evaluate(dbName);
 			//parent.displayRelation();
 			//subRelation.displayRelation();
-			Relation join = parent.join(subRelation);
-			if(!negated) return join;	//I'm really shaky on my relational algebra but I think this is right...
-			else return join; //TODO
+			Relation exists = parent.join(subRelation);
+			if(!negated) return exists;	//I'm really shaky on my relational algebra but I think this is right...
+			else return parent.minus(exists);
 		}
 		
 		return null;
